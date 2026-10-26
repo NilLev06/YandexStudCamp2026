@@ -4,7 +4,7 @@
   else root.SensorDemo = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const CONFIG = Object.freeze({bucket:3, lateness:2, staleAfter:6, freshConfirm:3, k:0.35, h:7, clip:3, baselineSigma:4.5});
+  const CONFIG = Object.freeze({bucket:3, lateness:2, staleAfter:6, freshConfirm:3, freshAgeThreshold:2, k:0.35, h:7, clip:3, baselineSigma:4.5});
   const PROFILES = {A:{mean:95, sigma:1.5}, B:{mean:80, sigma:1.5}};
   const valid = m => Number.isFinite(m.value) && (m.quality_flags === undefined || m.quality_flags === 'valid');
   const SCENARIOS = {
@@ -41,7 +41,7 @@
       }
       let received=t;
       if((full || scenario==='gap') && t>=gapStart && t<freshTime) {
-        if(t<batchTime-15) received=batchTime;
+        if(t<batchTime-15) received=batchTime+(random()*0.5-0.25);
         else continue;
       }
       messages.push({id:t,sensor_id:'camera-01',event_time:t,received_at:received,value:Number(value.toFixed(3)),mode,quality_flags:'valid'});
@@ -54,6 +54,7 @@
       this.mode=null;this.s=0;this.recent=[];this.buckets=new Map();this.lastBucket=-1;this.seen=new Set();
       this.newest=null;this.lastReceipt=null;this.incidents=[];this.events=[];this.qualityIncident=null;this.availabilityIncident=null;
       this.freshRun=0;this.lateCount=0;this.accepted=0;this.z=0;this.aggregate=null;this.aggregateTime=null;
+      this.badFlagCount=0;this.badBuckets=new Map();
     }
     open(type, now, reason) {
       const incident={type,start:now,end:null,reason};this.incidents.push(incident);
@@ -66,7 +67,7 @@
       for(const m of incoming) {
         if(this.seen.has(m.id)) continue;
         this.seen.add(m.id);this.lastReceipt=now;this.accepted++;
-        if(!valid(m)) continue;
+        if(!valid(m)){const b=Math.floor(m.event_time/CONFIG.bucket);this.badBuckets.set(b,(this.badBuckets.get(b)||0)+1);this.badFlagCount++;continue;}
         this.newest=Math.max(this.newest??-Infinity,m.event_time);
         const bucket=Math.floor(m.event_time/CONFIG.bucket);
         if(now-m.event_time>CONFIG.lateness+CONFIG.bucket || bucket<=this.lastBucket) {this.lateCount++;continue;}
@@ -74,7 +75,7 @@
         if(this.mode!==m.mode) {
           if(this.mode!==null) this.events.push({time:now,kind:'mode',type:'info',text:'Режим '+this.mode+' → '+m.mode+'; применён отдельный эталон'});
           if(this.qualityIncident) {this.close(this.qualityIncident,now,'Оценка предыдущего режима завершена при переключении');this.qualityIncident=null;}
-          this.mode=m.mode;this.s=0;this.recent=[];this.buckets.clear();this.z=0;this.aggregate=null;this.aggregateTime=null;
+          this.mode=m.mode;this.s=0;this.recent=[];this.buckets.clear();this.badBuckets.clear();this.z=0;this.aggregate=null;this.aggregateTime=null;
         }
         if(!this.buckets.has(bucket)) this.buckets.set(bucket,[]);
         this.buckets.get(bucket).push(m.value);
@@ -85,23 +86,29 @@
         if(values.length<2 || !this.mode) continue;
         const profile=PROFILES[this.mode];this.aggregate=median(values);this.aggregateTime=(b+1)*CONFIG.bucket-1;
         this.z=(profile.mean-this.aggregate)/profile.sigma;
+        const badCount=this.badBuckets.get(b)||0;
+        const totalCount=values.length+badCount;
+        if(totalCount>=2 && badCount/totalCount>=0.5 && this.mode) {
+          this.events.push({time:now,kind:'degraded_flags',type:'info',text:'Более 50% флагов в окне невалидны: '+badCount+'/'+totalCount});
+        }
+        this.badBuckets.delete(b);
         this.s=Math.max(0,this.s+Math.max(-CONFIG.clip,Math.min(CONFIG.clip,this.z))-CONFIG.k);
         this.recent.push(this.z);if(this.recent.length>5)this.recent.shift();
         if(!this.qualityIncident && this.s>=CONFIG.h && this.recent.slice(-3).filter(z=>z>0.8).length>=2) {
           this.qualityIncident=this.open('quality',now,'Устойчивое снижение качества: CUSUM ≥ 7 и подтверждение по последним окнам');
         }
         if(this.qualityIncident && this.recent.length===5 && this.recent.every(z=>Math.abs(z)<0.9)) {
-          this.close(this.qualityIncident,now,'Пять последовательных окон вернулись в нормальный диапазон');this.qualityIncident=null;this.s=0;
+          this.close(this.qualityIncident,now,'Пять последовательных окон вернулись в нормальный диапазон');this.qualityIncident=null;this.s=0;this.recent=[];this.aggregate=null;this.aggregateTime=null;
         }
       }
       this.lastBucket=Math.max(this.lastBucket,finalized);
-      const age=this.newest===null?null:now-this.newest;
+      const age=this.newest===null?Infinity:now-this.newest;
       const stale=age===null || age>CONFIG.staleAfter;
       if(stale) {
         this.freshRun=0;
         if(!this.availabilityIncident && now>CONFIG.staleAfter) this.availabilityIncident=this.open('availability',now,'Нет пригодных свежих измерений более 6 секунд');
       } else if(this.availabilityIncident) {
-        const hasFresh=incoming.some(m=>valid(m) && now-m.event_time<=2);
+        const hasFresh=incoming.some(m=>valid(m) && now-m.event_time<=CONFIG.freshAgeThreshold);
         this.freshRun=hasFresh?this.freshRun+1:0;
         if(this.freshRun>=CONFIG.freshConfirm) {this.close(this.availabilityIncident,now,'Получены три последовательных свежих измерения');this.availabilityIncident=null;this.freshRun=0;this.s=0;this.recent=[];}
       }

@@ -86,6 +86,7 @@
   function seek(t){now=Math.max(0,Math.min(result.duration,Math.floor(t)));carry=0;playing=false;render();}
   function context() {
     const full=result.scenario==='combined',s=result.scenario;
+    const quality=result.frames[now]?.quality;
     const ds=full?100:60,de=full?200:170,gs=full?240:60,bt=full?290:110,ft=full?300:120,mt=full?340:60;
     if((full||s==='mode')&&now>=mt)return ['Режим сменился — норма тоже','Падение с 95 до 80 допустимо в режиме B. Монитор применяет отдельный эталон и не объявляет деградацию.'];
     if((full||s==='gap')&&now>=ft && now<ft+20)return ['Свежий поток восстановился','Старая пачка не закрыла инцидент. Монитор дождался трёх последовательных свежих измерений.'];
@@ -94,6 +95,7 @@
     if((full||s==='drift')&&now>=de && now<de+35)return ['Качество восстановилось','Монитор проверяет пять нормальных окон подряд. Это не позволяет закрывать инцидент из-за одной удачной точки.'];
     if((full||s==='drift')&&now>=ds && now<de)return ['Небольшие отклонения накапливаются','Качество постепенно снижается. CUSUM собирает свидетельства, а подтверждение по окнам отсеивает одиночные скачки.'];
     if((full||s==='spike')&&now>=60 && now<90)return ['Выброс ≠ устойчивая деградация','Одна точка упала до 40. Простой порог сработал; медиана окна и подтверждение не дали открыть устойчивый инцидент.'];
+    if(quality==='suspect') return ['CUSUM накапливает отклонения','Накопление CUSUM превысило 3, но порог тревоги 7 ещё не достигнут. Монитор собирает свидетельства — это не ложная тревога и не окончательный диагноз.'];
     return ['Исправная работа',SCENARIOS[s].description];
   }
   function setStatus(prefix,status,text,detail){$(prefix+'-dot').className='dot '+status;$(prefix+'-state').textContent=text;$(prefix+'-detail').textContent=detail;}

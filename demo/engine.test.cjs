@@ -1,7 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-let api = {};
-try { api = require('./engine.js'); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
+const api = require('./engine.js');
 test('генератор и воспроизведение доступны', () => {
   assert.equal(typeof api.generate, 'function');
   assert.equal(typeof api.replay, 'function');
@@ -48,4 +47,13 @@ test('нет оценки до первого окна, в пропуске и �
   assert.equal(r.frames[122].availability,'fresh');
   assert.equal(r.frames[122].quality,'unknown');
   assert.equal(r.frames[125].quality,'normal');
+});
+test('без единого измерения открывается инцидент доступности', () => {
+  const m = new api.Monitor();
+  for(let t=0;t<=10;t++) m.tick(t,[]);
+  const last=m.tick(15,[]);
+  assert.equal(last.availability,'stale');
+  const avail=m.incidents.find(x=>x.type==='availability');
+  assert.ok(avail,'Монитор должен открыть инцидент при отсутствии измерений');
+  assert.ok(avail.start>=6,'Инцидент должен открыться после staleAfter=6');
 });
