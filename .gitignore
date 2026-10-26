@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+*.log
+
+# Local chat context and implementation notes
+PROJECT_CONTEXT.md
+docs/superpowers/
+
+# Browser QA helpers with machine-specific runtime paths
+demo/browser-check.cjs
+demo/seed-check.cjs
