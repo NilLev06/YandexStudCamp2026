@@ -9,3 +9,10 @@ docs/superpowers/
 # Browser QA helpers with machine-specific runtime paths
 demo/browser-check.cjs
 demo/seed-check.cjs
+
+# gateway / frontend
+frontend/dist/
+__pycache__/
+.pytest_cache/
+sim/webots_drone/logs/
+*.tsbuildinfo

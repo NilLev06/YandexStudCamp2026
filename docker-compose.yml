@@ -1,0 +1,8 @@
+services:
+  sensorwatch:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SENSORWATCH_DEMO_ON_START: "1"      # демо-датчик сразу после запуска
+      SENSORWATCH_INGEST_KEY: ""          # задайте ключ, чтобы закрыть POST /ingest

@@ -1,0 +1,120 @@
+/* Раскладка поверх токенов Gravity UI (--g-*) - цвета берутся из темы */
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    background: var(--g-color-base-background);
+}
+
+.sw-content {
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.sw-page {
+    padding: 24px 32px 48px;
+    max-width: 1440px;
+    box-sizing: border-box;
+}
+
+.sw-narrow {
+    max-width: 960px;
+}
+
+.sw-loader {
+    margin: 64px auto;
+    display: block;
+}
+
+.sw-banner {
+    padding: 10px 32px;
+    background: var(--g-color-base-danger-light);
+}
+
+.sw-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.sw-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sw-panel {
+    padding: 16px 20px;
+    box-sizing: border-box;
+}
+
+.sw-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 12px;
+}
+
+.sw-card-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sw-sensor-card {
+    padding: 14px 16px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.sw-card_alarm {
+    box-shadow: inset 3px 0 0 var(--g-color-line-danger);
+}
+
+.sw-card_warn {
+    box-shadow: inset 3px 0 0 var(--g-color-line-warning);
+}
+
+.sw-tab-body {
+    padding-top: 16px;
+}
+
+.sw-two-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 12px;
+}
+
+.sw-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--g-color-base-neutral-heavy);
+}
+
+.sw-dot_open {
+    background: var(--g-color-base-positive-heavy);
+}
+
+.sw-dot_closed {
+    background: var(--g-color-base-danger-heavy);
+}
+
+.sw-dot_connecting {
+    background: var(--g-color-base-warning-heavy);
+}
+
+@media (max-width: 900px) {
+    .sw-page {
+        padding: 16px;
+    }
+
+    .sw-two-cols {
+        grid-template-columns: 1fr;
+    }
+
+    .sw-grid {
+        grid-template-columns: 1fr;
+    }
+}
