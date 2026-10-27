@@ -4,7 +4,8 @@
   else root.SensorDemo = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const CONFIG = Object.freeze({bucket:3, lateness:2, staleAfter:6, freshConfirm:3, freshAgeThreshold:2, k:0.35, h:7, clip:3, baselineSigma:4.5});
+  const CONFIG = Object.freeze({bucket:3, lateness:2, staleAfter:6, freshConfirm:3, freshAgeThreshold:2, k:0.5, h:10, clip:4.5, suspect:4.5, confirmZ:1.2, recoverZ:1.35,
+    badFlagShare:0.5, flagsRecover:3, dedupWindow:120, modeLogEvery:30, maxLog:10000, matchTolerance:3, baselineSigma:4.5});
   const PROFILES = {A:{mean:95, sigma:1.5}, B:{mean:80, sigma:1.5}};
   const valid = m => Number.isFinite(m.value) && (m.quality_flags === undefined || m.quality_flags === 'valid');
   const SCENARIOS = {
@@ -49,73 +50,105 @@
     messages.sort((a,b)=>a.received_at-b.received_at || a.event_time-b.event_time);
     return {scenario,seed,duration:cfg.duration,messages,truth,annotations};
   }
+  const MEDIAN_SD=[1,1,0.7071,0.6702,0.5467,0.5352,0.4635,0.4588,0.4107];
+  const medianSd = n => MEDIAN_SD[n] ?? Math.sqrt(Math.PI/(2*n));
   class Monitor {
     constructor() {
-      this.mode=null;this.s=0;this.recent=[];this.buckets=new Map();this.lastBucket=-1;this.seen=new Set();
+      this.mode=null;this.s=0;this.recent=[];this.buckets=new Map();this.lastBucket=-1;this.seen=new Map();
       this.newest=null;this.lastReceipt=null;this.incidents=[];this.events=[];this.qualityIncident=null;this.availabilityIncident=null;
       this.freshRun=0;this.lateCount=0;this.accepted=0;this.z=0;this.aggregate=null;this.aggregateTime=null;
-      this.badFlagCount=0;this.badBuckets=new Map();
+      this.badFlagCount=0;this.badBuckets=new Map();this.lastBad=null;this.flagsIncident=null;this.flagsOkRun=0;
+      this.lastModeLog=-Infinity;this.pendingSwitches=0;
     }
+    log(list, item) {list.push(item);if(list.length>CONFIG.maxLog)list.shift();}
     open(type, now, reason) {
-      const incident={type,start:now,end:null,reason};this.incidents.push(incident);
-      this.events.push({time:now,kind:'open',type,text:reason});return incident;
+      const incident={type,start:now,end:null,reason};this.log(this.incidents,incident);
+      this.log(this.events,{time:now,kind:'open',type,text:reason});return incident;
     }
     close(incident, now, reason) {
-      incident.end=now;this.events.push({time:now,kind:'close',type:incident.type,text:reason});
+      incident.end=now;this.log(this.events,{time:now,kind:'close',type:incident.type,text:reason});
+    }
+    duplicate(m, now) {
+      const horizon=Math.floor((now-CONFIG.dedupWindow)/CONFIG.bucket), b=Math.floor(m.event_time/CONFIG.bucket), key=m.id??m.event_time;
+      if(b<horizon) return false;
+      let ids=this.seen.get(b);
+      if(ids?.has(key)) return true;
+      if(!ids) this.seen.set(b,ids=new Set());
+      ids.add(key);return false;
+    }
+    switchMode(mode, now) {
+      const from=this.mode;this.mode=mode;
+      if(!PROFILES[mode]) {this.log(this.events,{time:now,kind:'unknown_mode',type:'info',text:'Режим '+mode+' не описан: эталона нет, качество не оценивается'});return;}
+      if(from===null) return;
+      if(!PROFILES[from]) {this.log(this.events,{time:now,kind:'mode',type:'info',text:'Режим '+from+' → '+mode+'; оценка качества возобновлена'});return;}
+      if(now-this.lastModeLog<CONFIG.modeLogEvery) {this.pendingSwitches++;return;}
+      const extra=this.pendingSwitches?' (ещё '+this.pendingSwitches+' переключений с прошлой записи)':'';
+      const keep=this.qualityIncident?'; инцидент качества остаётся открытым, восстановление проверяется по эталону '+mode:'';
+      this.log(this.events,{time:now,kind:'mode',type:'info',text:'Режим '+from+' → '+mode+'; применён отдельный эталон'+keep+extra});
+      this.lastModeLog=now;this.pendingSwitches=0;
     }
     tick(now, incoming) {
       for(const m of incoming) {
-        if(this.seen.has(m.id)) continue;
-        this.seen.add(m.id);this.lastReceipt=now;this.accepted++;
-        if(!valid(m)){const b=Math.floor(m.event_time/CONFIG.bucket);this.badBuckets.set(b,(this.badBuckets.get(b)||0)+1);this.badFlagCount++;continue;}
-        this.newest=Math.max(this.newest??-Infinity,m.event_time);
-        const bucket=Math.floor(m.event_time/CONFIG.bucket);
+        if(this.duplicate(m,now)) continue;
+        this.lastReceipt=now;this.accepted++;
+        const ok=valid(m), bucket=Math.floor(m.event_time/CONFIG.bucket);
+        if(ok) this.newest=Math.max(this.newest??-Infinity,m.event_time);
         if(now-m.event_time>CONFIG.lateness+CONFIG.bucket || bucket<=this.lastBucket) {this.lateCount++;continue;}
-        if(!PROFILES[m.mode]) continue;
-        if(this.mode!==m.mode) {
-          if(this.mode!==null) this.events.push({time:now,kind:'mode',type:'info',text:'Режим '+this.mode+' → '+m.mode+'; применён отдельный эталон'});
-          if(this.qualityIncident) {this.close(this.qualityIncident,now,'Оценка предыдущего режима завершена при переключении');this.qualityIncident=null;}
-          this.mode=m.mode;this.s=0;this.recent=[];this.buckets.clear();this.badBuckets.clear();this.z=0;this.aggregate=null;this.aggregateTime=null;
-        }
-        if(!this.buckets.has(bucket)) this.buckets.set(bucket,[]);
-        this.buckets.get(bucket).push(m.value);
+        if(!ok) {this.badBuckets.set(bucket,(this.badBuckets.get(bucket)||0)+1);this.badFlagCount++;this.lastBad=now;continue;}
+        if(this.mode!==m.mode) this.switchMode(m.mode,now);
+        const profile=PROFILES[m.mode];
+        if(!profile) continue;
+        if(!this.buckets.has(bucket)) this.buckets.set(bucket,{r:[],mode:m.mode});
+        const slot=this.buckets.get(bucket);slot.r.push((profile.mean-m.value)/profile.sigma);slot.mode=m.mode;
       }
       const finalized=Math.floor((now-CONFIG.lateness)/CONFIG.bucket)-1;
       for(let b=this.lastBucket+1;b<=finalized;b++) {
-        const values=this.buckets.get(b)||[];this.buckets.delete(b);
-        if(values.length<2 || !this.mode) continue;
-        const profile=PROFILES[this.mode];this.aggregate=median(values);this.aggregateTime=(b+1)*CONFIG.bucket-1;
-        this.z=(profile.mean-this.aggregate)/profile.sigma;
-        const badCount=this.badBuckets.get(b)||0;
-        const totalCount=values.length+badCount;
-        if(totalCount>=2 && badCount/totalCount>=0.5 && this.mode) {
-          this.events.push({time:now,kind:'degraded_flags',type:'info',text:'Более 50% флагов в окне невалидны: '+badCount+'/'+totalCount});
+        const values=this.buckets.get(b)?.r||[], slotMode=this.buckets.get(b)?.mode, badCount=this.badBuckets.get(b)||0, totalCount=values.length+badCount;
+        this.buckets.delete(b);this.badBuckets.delete(b);
+        if(totalCount>=2) {
+          const share=badCount/totalCount;
+          if(share>=CONFIG.badFlagShare) {
+            this.flagsOkRun=0;
+            if(!this.flagsIncident) this.flagsIncident=this.open('flags',now,'Доля невалидных измерений в окне '+badCount+'/'+totalCount+' (порог '+Math.round(CONFIG.badFlagShare*100)+'%)');
+          } else if(this.flagsIncident && ++this.flagsOkRun>=CONFIG.flagsRecover) {
+            this.close(this.flagsIncident,now,'Доля невалидных измерений ниже порога в '+CONFIG.flagsRecover+' окнах подряд');this.flagsIncident=null;this.flagsOkRun=0;
+          }
         }
-        this.badBuckets.delete(b);
+        if(values.length<2) continue;
+        const zMedian=median(values), profile=PROFILES[slotMode];
+        this.aggregate=profile.mean-zMedian*profile.sigma;this.aggregateTime=(b+1)*CONFIG.bucket-1;
+        this.z=zMedian/medianSd(values.length);
         this.s=Math.max(0,this.s+Math.max(-CONFIG.clip,Math.min(CONFIG.clip,this.z))-CONFIG.k);
         this.recent.push(this.z);if(this.recent.length>5)this.recent.shift();
-        if(!this.qualityIncident && this.s>=CONFIG.h && this.recent.slice(-3).filter(z=>z>0.8).length>=2) {
-          this.qualityIncident=this.open('quality',now,'Устойчивое снижение качества: CUSUM ≥ 7 и подтверждение по последним окнам');
+        if(!this.qualityIncident && this.s>=CONFIG.h && this.recent.slice(-3).filter(z=>z>CONFIG.confirmZ).length>=2) {
+          this.qualityIncident=this.open('quality',now,'Устойчивое снижение качества: CUSUM ≥ '+CONFIG.h+' и подтверждение по последним окнам');
         }
-        if(this.qualityIncident && this.recent.length===5 && this.recent.every(z=>Math.abs(z)<0.9)) {
+        if(this.qualityIncident && this.recent.length===5 && this.recent.every(z=>Math.abs(z)<CONFIG.recoverZ)) {
           this.close(this.qualityIncident,now,'Пять последовательных окон вернулись в нормальный диапазон');this.qualityIncident=null;this.s=0;this.recent=[];this.aggregate=null;this.aggregateTime=null;
         }
       }
       this.lastBucket=Math.max(this.lastBucket,finalized);
-      const age=this.newest===null?Infinity:now-this.newest;
+      const horizon=Math.floor((now-CONFIG.dedupWindow)/CONFIG.bucket);
+      for(const b of this.seen.keys()) if(b<horizon) this.seen.delete(b);
+      for(const b of this.badBuckets.keys()) if(b<=this.lastBucket) this.badBuckets.delete(b);
+      const age=this.newest===null?null:now-this.newest;
       const stale=age===null || age>CONFIG.staleAfter;
       if(stale) {
         this.freshRun=0;
-        if(!this.availabilityIncident && now>CONFIG.staleAfter) this.availabilityIncident=this.open('availability',now,'Нет пригодных свежих измерений более 6 секунд');
+        if(!this.availabilityIncident && now>CONFIG.staleAfter) {
+          const flagged=this.lastBad!==null && now-this.lastBad<=CONFIG.staleAfter;
+          this.availabilityIncident=this.open('availability',now,flagged?'Измерения поступают, но более '+CONFIG.staleAfter+' секунд помечены невалидными':'Нет пригодных свежих измерений более '+CONFIG.staleAfter+' секунд');
+        }
       } else if(this.availabilityIncident) {
         const hasFresh=incoming.some(m=>valid(m) && now-m.event_time<=CONFIG.freshAgeThreshold);
         this.freshRun=hasFresh?this.freshRun+1:0;
         if(this.freshRun>=CONFIG.freshConfirm) {this.close(this.availabilityIncident,now,'Получены три последовательных свежих измерения');this.availabilityIncident=null;this.freshRun=0;this.s=0;this.recent=[];}
       }
       const unavailable=this.aggregateTime===null || now-this.aggregateTime>CONFIG.bucket*2+CONFIG.lateness || stale || !!this.availabilityIncident;
-      return {now,mode:this.mode||'—',s:this.s,z:this.z,aggregate:this.aggregate,aggregateTime:this.aggregateTime,
-        quality:this.qualityIncident?'alarm':unavailable?'unknown':this.s>3?'suspect':'normal',
-        availability:this.availabilityIncident?'stale':age===null?'unknown':'fresh',
+      return {now,mode:this.mode||'—',modeKnown:!!PROFILES[this.mode],s:this.s,z:this.z,aggregate:this.aggregate,aggregateTime:this.aggregateTime,
+        quality:this.qualityIncident?'alarm':unavailable?'unknown':this.s>CONFIG.suspect?'suspect':'normal',
+        availability:this.availabilityIncident?'stale':age===null?'unknown':stale?'stale':'fresh',
+        flags:this.flagsIncident?'degraded':'ok',
         age,sinceReceipt:this.lastReceipt===null?null:now-this.lastReceipt,
         lateCount:this.lateCount,accepted:this.accepted,events:this.events.length};
     }
@@ -138,17 +171,25 @@
     return {...data,frames,incidents:monitor.incidents,events:monitor.events,baseline};
   }
   function evaluate(result) {
+    const scored=new Set(['quality','availability']);
     function score(incidents) {
-      const matched=new Set(),delays=[];let falseAlarms=0,repeats=0;
-      for(const i of incidents) {
-        const j=result.truth.findIndex(t=>t.type===i.type && i.start>=t.start && i.start<t.end);
-        if(j===-1)falseAlarms++;
-        else if(matched.has(j))repeats++;
-        else {matched.add(j);delays.push(i.start-result.truth[j].start);}
+      const matched=new Map(),delays=[],closeDelays=[];let falseAlarms=0,repeats=0,unclosed=0;
+      for(const i of incidents.filter(i=>scored.has(i.type))) {
+        const j=result.truth.findIndex(t=>t.type===i.type && i.start>=t.start-CONFIG.matchTolerance && i.start<t.end);
+        if(j===-1) {falseAlarms++;if(i.end===null)unclosed++;}
+        else if(matched.has(j)) {repeats++;if(i.end===null && result.truth[j].end<result.duration)unclosed++;}
+        else {matched.set(j,i);delays.push(Math.max(0,i.start-result.truth[j].start));}
       }
-      return {detected:matched.size,total:result.truth.length,falseAlarms,repeats,delay:delays.length?delays.reduce((a,b)=>a+b,0)/delays.length:null};
+      for(const [j,i] of matched) {
+        const t=result.truth[j];
+        if(i.end!==null) closeDelays.push(i.end-t.end);
+        else if(t.end<result.duration) unclosed++;
+      }
+      const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+      return {detected:matched.size,total:result.truth.length,falseAlarms,repeats,unclosed,
+        delay:mean(delays),closeDelay:mean(closeDelays),closed:closeDelays.length};
     }
     return {monitor:score(result.incidents),baseline:score(result.baseline)};
   }
-  return {CONFIG,PROFILES,SCENARIOS,generate,Monitor,replay,evaluate};
+  return {CONFIG,PROFILES,SCENARIOS,generate,Monitor,replay,evaluate,medianSd};
 });

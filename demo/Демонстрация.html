@@ -40,7 +40,7 @@
         <div id="quality-chart" class="chart"><svg id="quality-svg" role="img" aria-label="Качество измерений во времени"></svg><div id="tooltip" class="tooltip"></div></div>
         <div class="chart-caption">Разметка фоном — только для показа и оценки. Вертикальная красная линия — момент тревоги монитора.</div>
         <div class="rule"></div>
-        <div class="small-title"><strong>Накопленное свидетельство · CUSUM</strong><span id="cusum-value">0,0 / 7</span></div>
+        <div class="small-title"><strong>Накопленное свидетельство · CUSUM</strong><span id="cusum-value">0,0 / 10</span></div>
         <div class="chart"><svg id="cusum-svg" role="img" aria-label="Накопленная сумма отклонений и порог тревоги"></svg></div>
         <div class="chart-caption">Медиана в окне 3 с → отклонение от нормы → ограниченный вклад → накопление и подтверждение.</div>
       </section>
@@ -56,8 +56,8 @@
       <div class="benchmark-output" id="benchmark-output" aria-live="polite"></div>
     </section>
     <details class="panel method"><summary>Как это работает · параметры и границы демонстрации</summary><div class="method-body">
-      <div><strong>Обработка потока</strong><ul><li>Синтетический сенсор, 1 измерение/с. Два времени: измерения и получения. Пропуски проверяются таймером даже без сообщений.</li><li>Для режимов A и B заданы исправные эталоны: 95 и 80; σ = 1,5. В прототипе калибровка не реализована.</li><li>Медиана окон 3 с, минимум 2 точки; ожидание опозданий 2 с. Закрытые окна не пересчитываются.</li><li><span class="param">z = (норма − медиана) / σ; S = max(0, S + clip(z, −3, 3) − 0,35)</span>.</li><li>Открытие тревоги: S ≥ 7 и z &gt; 0,8 в двух из последних трёх окон. Закрытие: пять окон подряд с |z| &lt; 0,9.</li><li>Нет свежих данных &gt; 6 с → отдельный инцидент. Закрытие: три последовательных свежих измерения.</li></ul></div>
-      <div><strong>Честная интерпретация результата</strong><ul><li>Это работающий прототип на синтетике; показатели не переносятся автоматически на реальные сенсоры.</li><li>Режим передаётся явно, часы согласованы. Эталоны фиксированы и не «привыкают» к деградации.</li><li>Сравнение: обычный порог «значение ниже нормы режима на 4,5σ». Контроль пропусков у обоих методов одинаковый.</li><li>250 прогонов: 5 сценариев × seed 1…50. Параметры фиксированы; это проверка устойчивости к шуму, а не независимый внешний тест.</li><li>Событие обнаружено, если начало инцидента того же типа попало в размеченный интервал. Дополнительные открытия внутри него — повторы; вне интервалов — ложные тревоги.</li><li>Задержка считается от начала события до первой тревоги. Средняя задержка включает обнаруженные события обоих типов; пропуски показаны отдельно.</li></ul></div>
+      <div><strong>Обработка потока</strong><ul><li>Синтетический сенсор, 1 измерение/с. Два времени: измерения и получения. Пропуски проверяются таймером даже без сообщений.</li><li>Для режимов A и B заданы исправные эталоны: 95 и 80; σ = 1,5. В прототипе калибровка не реализована.</li><li>Медиана окон 3 с, минимум 2 точки; ожидание опозданий 2 с. Закрытые окна не пересчитываются.</li><li><span class="param">z = медиана((норма − x) / σ) / σ<sub>медианы</sub>(n); S = max(0, S + clip(z, −4,5, 4,5) − 0,5)</span>. σ<sub>медианы</sub> для трёх значений ≈ 0,67; остаток считается по эталону режима каждого измерения.</li><li>Открытие тревоги: S ≥ 10 и z &gt; 1,2 в двух из последних трёх окон. Закрытие: пять окон подряд с |z| &lt; 1,35. Смена режима инцидент не закрывает.</li><li>Нет свежих данных &gt; 6 с → отдельный инцидент. Закрытие: три последовательных свежих измерения.</li><li>Невалидные флаги в ≥ 50% измерений окна → отдельный инцидент. Закрытие: три окна подряд ниже порога.</li></ul></div>
+      <div><strong>Честная интерпретация результата</strong><ul><li>Это работающий прототип на синтетике; показатели не переносятся автоматически на реальные сенсоры.</li><li>Режим передаётся явно, часы согласованы. Эталоны фиксированы и не «привыкают» к деградации.</li><li>Сравнение: обычный порог «значение ниже нормы режима на 4,5σ». Контроль пропусков у обоих методов одинаковый.</li><li>250 прогонов: 5 сценариев × seed 1…50. Параметры фиксированы; это проверка устойчивости к шуму, а не независимый внешний тест.</li><li>Событие обнаружено, если начало инцидента того же типа попало в размеченный интервал (допуск 3 с до его начала). Дополнительные открытия внутри него — повторы; вне интервалов — ложные тревоги.</li><li>Задержка считается от начала события до первой тревоги, задержка закрытия — от конца события до закрытия инцидента. Средние включают обнаруженные события обоих типов; пропуски показаны отдельно.</li><li>«Не закрыты» — инциденты, которые остались открытыми к концу прогона, хотя размеченное событие уже завершилось.</li></ul></div>
     </div></details>
     <footer class="footer"><span>Sensor Watch · Монитор дрейфа сенсоров и качества восприятия</span><span>Синтетические данные · воспроизводимый seed · автономный прототип</span></footer>
   </main>
@@ -68,7 +68,8 @@
   else root.SensorDemo = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const CONFIG = Object.freeze({bucket:3, lateness:2, staleAfter:6, freshConfirm:3, freshAgeThreshold:2, k:0.35, h:7, clip:3, baselineSigma:4.5});
+  const CONFIG = Object.freeze({bucket:3, lateness:2, staleAfter:6, freshConfirm:3, freshAgeThreshold:2, k:0.5, h:10, clip:4.5, suspect:4.5, confirmZ:1.2, recoverZ:1.35,
+    badFlagShare:0.5, flagsRecover:3, dedupWindow:120, modeLogEvery:30, maxLog:10000, matchTolerance:3, baselineSigma:4.5});
   const PROFILES = {A:{mean:95, sigma:1.5}, B:{mean:80, sigma:1.5}};
   const valid = m => Number.isFinite(m.value) && (m.quality_flags === undefined || m.quality_flags === 'valid');
   const SCENARIOS = {
@@ -113,73 +114,105 @@
     messages.sort((a,b)=>a.received_at-b.received_at || a.event_time-b.event_time);
     return {scenario,seed,duration:cfg.duration,messages,truth,annotations};
   }
+  const MEDIAN_SD=[1,1,0.7071,0.6702,0.5467,0.5352,0.4635,0.4588,0.4107];
+  const medianSd = n => MEDIAN_SD[n] ?? Math.sqrt(Math.PI/(2*n));
   class Monitor {
     constructor() {
-      this.mode=null;this.s=0;this.recent=[];this.buckets=new Map();this.lastBucket=-1;this.seen=new Set();
+      this.mode=null;this.s=0;this.recent=[];this.buckets=new Map();this.lastBucket=-1;this.seen=new Map();
       this.newest=null;this.lastReceipt=null;this.incidents=[];this.events=[];this.qualityIncident=null;this.availabilityIncident=null;
       this.freshRun=0;this.lateCount=0;this.accepted=0;this.z=0;this.aggregate=null;this.aggregateTime=null;
-      this.badFlagCount=0;this.badBuckets=new Map();
+      this.badFlagCount=0;this.badBuckets=new Map();this.lastBad=null;this.flagsIncident=null;this.flagsOkRun=0;
+      this.lastModeLog=-Infinity;this.pendingSwitches=0;
     }
+    log(list, item) {list.push(item);if(list.length>CONFIG.maxLog)list.shift();}
     open(type, now, reason) {
-      const incident={type,start:now,end:null,reason};this.incidents.push(incident);
-      this.events.push({time:now,kind:'open',type,text:reason});return incident;
+      const incident={type,start:now,end:null,reason};this.log(this.incidents,incident);
+      this.log(this.events,{time:now,kind:'open',type,text:reason});return incident;
     }
     close(incident, now, reason) {
-      incident.end=now;this.events.push({time:now,kind:'close',type:incident.type,text:reason});
+      incident.end=now;this.log(this.events,{time:now,kind:'close',type:incident.type,text:reason});
+    }
+    duplicate(m, now) {
+      const horizon=Math.floor((now-CONFIG.dedupWindow)/CONFIG.bucket), b=Math.floor(m.event_time/CONFIG.bucket), key=m.id??m.event_time;
+      if(b<horizon) return false;
+      let ids=this.seen.get(b);
+      if(ids?.has(key)) return true;
+      if(!ids) this.seen.set(b,ids=new Set());
+      ids.add(key);return false;
+    }
+    switchMode(mode, now) {
+      const from=this.mode;this.mode=mode;
+      if(!PROFILES[mode]) {this.log(this.events,{time:now,kind:'unknown_mode',type:'info',text:'Режим '+mode+' не описан: эталона нет, качество не оценивается'});return;}
+      if(from===null) return;
+      if(!PROFILES[from]) {this.log(this.events,{time:now,kind:'mode',type:'info',text:'Режим '+from+' → '+mode+'; оценка качества возобновлена'});return;}
+      if(now-this.lastModeLog<CONFIG.modeLogEvery) {this.pendingSwitches++;return;}
+      const extra=this.pendingSwitches?' (ещё '+this.pendingSwitches+' переключений с прошлой записи)':'';
+      const keep=this.qualityIncident?'; инцидент качества остаётся открытым, восстановление проверяется по эталону '+mode:'';
+      this.log(this.events,{time:now,kind:'mode',type:'info',text:'Режим '+from+' → '+mode+'; применён отдельный эталон'+keep+extra});
+      this.lastModeLog=now;this.pendingSwitches=0;
     }
     tick(now, incoming) {
       for(const m of incoming) {
-        if(this.seen.has(m.id)) continue;
-        this.seen.add(m.id);this.lastReceipt=now;this.accepted++;
-        if(!valid(m)){const b=Math.floor(m.event_time/CONFIG.bucket);this.badBuckets.set(b,(this.badBuckets.get(b)||0)+1);this.badFlagCount++;continue;}
-        this.newest=Math.max(this.newest??-Infinity,m.event_time);
-        const bucket=Math.floor(m.event_time/CONFIG.bucket);
+        if(this.duplicate(m,now)) continue;
+        this.lastReceipt=now;this.accepted++;
+        const ok=valid(m), bucket=Math.floor(m.event_time/CONFIG.bucket);
+        if(ok) this.newest=Math.max(this.newest??-Infinity,m.event_time);
         if(now-m.event_time>CONFIG.lateness+CONFIG.bucket || bucket<=this.lastBucket) {this.lateCount++;continue;}
-        if(!PROFILES[m.mode]) continue;
-        if(this.mode!==m.mode) {
-          if(this.mode!==null) this.events.push({time:now,kind:'mode',type:'info',text:'Режим '+this.mode+' → '+m.mode+'; применён отдельный эталон'});
-          if(this.qualityIncident) {this.close(this.qualityIncident,now,'Оценка предыдущего режима завершена при переключении');this.qualityIncident=null;}
-          this.mode=m.mode;this.s=0;this.recent=[];this.buckets.clear();this.badBuckets.clear();this.z=0;this.aggregate=null;this.aggregateTime=null;
-        }
-        if(!this.buckets.has(bucket)) this.buckets.set(bucket,[]);
-        this.buckets.get(bucket).push(m.value);
+        if(!ok) {this.badBuckets.set(bucket,(this.badBuckets.get(bucket)||0)+1);this.badFlagCount++;this.lastBad=now;continue;}
+        if(this.mode!==m.mode) this.switchMode(m.mode,now);
+        const profile=PROFILES[m.mode];
+        if(!profile) continue;
+        if(!this.buckets.has(bucket)) this.buckets.set(bucket,{r:[],mode:m.mode});
+        const slot=this.buckets.get(bucket);slot.r.push((profile.mean-m.value)/profile.sigma);slot.mode=m.mode;
       }
       const finalized=Math.floor((now-CONFIG.lateness)/CONFIG.bucket)-1;
       for(let b=this.lastBucket+1;b<=finalized;b++) {
-        const values=this.buckets.get(b)||[];this.buckets.delete(b);
-        if(values.length<2 || !this.mode) continue;
-        const profile=PROFILES[this.mode];this.aggregate=median(values);this.aggregateTime=(b+1)*CONFIG.bucket-1;
-        this.z=(profile.mean-this.aggregate)/profile.sigma;
-        const badCount=this.badBuckets.get(b)||0;
-        const totalCount=values.length+badCount;
-        if(totalCount>=2 && badCount/totalCount>=0.5 && this.mode) {
-          this.events.push({time:now,kind:'degraded_flags',type:'info',text:'Более 50% флагов в окне невалидны: '+badCount+'/'+totalCount});
+        const values=this.buckets.get(b)?.r||[], slotMode=this.buckets.get(b)?.mode, badCount=this.badBuckets.get(b)||0, totalCount=values.length+badCount;
+        this.buckets.delete(b);this.badBuckets.delete(b);
+        if(totalCount>=2) {
+          const share=badCount/totalCount;
+          if(share>=CONFIG.badFlagShare) {
+            this.flagsOkRun=0;
+            if(!this.flagsIncident) this.flagsIncident=this.open('flags',now,'Доля невалидных измерений в окне '+badCount+'/'+totalCount+' (порог '+Math.round(CONFIG.badFlagShare*100)+'%)');
+          } else if(this.flagsIncident && ++this.flagsOkRun>=CONFIG.flagsRecover) {
+            this.close(this.flagsIncident,now,'Доля невалидных измерений ниже порога в '+CONFIG.flagsRecover+' окнах подряд');this.flagsIncident=null;this.flagsOkRun=0;
+          }
         }
-        this.badBuckets.delete(b);
+        if(values.length<2) continue;
+        const zMedian=median(values), profile=PROFILES[slotMode];
+        this.aggregate=profile.mean-zMedian*profile.sigma;this.aggregateTime=(b+1)*CONFIG.bucket-1;
+        this.z=zMedian/medianSd(values.length);
         this.s=Math.max(0,this.s+Math.max(-CONFIG.clip,Math.min(CONFIG.clip,this.z))-CONFIG.k);
         this.recent.push(this.z);if(this.recent.length>5)this.recent.shift();
-        if(!this.qualityIncident && this.s>=CONFIG.h && this.recent.slice(-3).filter(z=>z>0.8).length>=2) {
-          this.qualityIncident=this.open('quality',now,'Устойчивое снижение качества: CUSUM ≥ 7 и подтверждение по последним окнам');
+        if(!this.qualityIncident && this.s>=CONFIG.h && this.recent.slice(-3).filter(z=>z>CONFIG.confirmZ).length>=2) {
+          this.qualityIncident=this.open('quality',now,'Устойчивое снижение качества: CUSUM ≥ '+CONFIG.h+' и подтверждение по последним окнам');
         }
-        if(this.qualityIncident && this.recent.length===5 && this.recent.every(z=>Math.abs(z)<0.9)) {
+        if(this.qualityIncident && this.recent.length===5 && this.recent.every(z=>Math.abs(z)<CONFIG.recoverZ)) {
           this.close(this.qualityIncident,now,'Пять последовательных окон вернулись в нормальный диапазон');this.qualityIncident=null;this.s=0;this.recent=[];this.aggregate=null;this.aggregateTime=null;
         }
       }
       this.lastBucket=Math.max(this.lastBucket,finalized);
-      const age=this.newest===null?Infinity:now-this.newest;
+      const horizon=Math.floor((now-CONFIG.dedupWindow)/CONFIG.bucket);
+      for(const b of this.seen.keys()) if(b<horizon) this.seen.delete(b);
+      for(const b of this.badBuckets.keys()) if(b<=this.lastBucket) this.badBuckets.delete(b);
+      const age=this.newest===null?null:now-this.newest;
       const stale=age===null || age>CONFIG.staleAfter;
       if(stale) {
         this.freshRun=0;
-        if(!this.availabilityIncident && now>CONFIG.staleAfter) this.availabilityIncident=this.open('availability',now,'Нет пригодных свежих измерений более 6 секунд');
+        if(!this.availabilityIncident && now>CONFIG.staleAfter) {
+          const flagged=this.lastBad!==null && now-this.lastBad<=CONFIG.staleAfter;
+          this.availabilityIncident=this.open('availability',now,flagged?'Измерения поступают, но более '+CONFIG.staleAfter+' секунд помечены невалидными':'Нет пригодных свежих измерений более '+CONFIG.staleAfter+' секунд');
+        }
       } else if(this.availabilityIncident) {
         const hasFresh=incoming.some(m=>valid(m) && now-m.event_time<=CONFIG.freshAgeThreshold);
         this.freshRun=hasFresh?this.freshRun+1:0;
         if(this.freshRun>=CONFIG.freshConfirm) {this.close(this.availabilityIncident,now,'Получены три последовательных свежих измерения');this.availabilityIncident=null;this.freshRun=0;this.s=0;this.recent=[];}
       }
       const unavailable=this.aggregateTime===null || now-this.aggregateTime>CONFIG.bucket*2+CONFIG.lateness || stale || !!this.availabilityIncident;
-      return {now,mode:this.mode||'—',s:this.s,z:this.z,aggregate:this.aggregate,aggregateTime:this.aggregateTime,
-        quality:this.qualityIncident?'alarm':unavailable?'unknown':this.s>3?'suspect':'normal',
-        availability:this.availabilityIncident?'stale':age===null?'unknown':'fresh',
+      return {now,mode:this.mode||'—',modeKnown:!!PROFILES[this.mode],s:this.s,z:this.z,aggregate:this.aggregate,aggregateTime:this.aggregateTime,
+        quality:this.qualityIncident?'alarm':unavailable?'unknown':this.s>CONFIG.suspect?'suspect':'normal',
+        availability:this.availabilityIncident?'stale':age===null?'unknown':stale?'stale':'fresh',
+        flags:this.flagsIncident?'degraded':'ok',
         age,sinceReceipt:this.lastReceipt===null?null:now-this.lastReceipt,
         lateCount:this.lateCount,accepted:this.accepted,events:this.events.length};
     }
@@ -202,19 +235,27 @@
     return {...data,frames,incidents:monitor.incidents,events:monitor.events,baseline};
   }
   function evaluate(result) {
+    const scored=new Set(['quality','availability']);
     function score(incidents) {
-      const matched=new Set(),delays=[];let falseAlarms=0,repeats=0;
-      for(const i of incidents) {
-        const j=result.truth.findIndex(t=>t.type===i.type && i.start>=t.start && i.start<t.end);
-        if(j===-1)falseAlarms++;
-        else if(matched.has(j))repeats++;
-        else {matched.add(j);delays.push(i.start-result.truth[j].start);}
+      const matched=new Map(),delays=[],closeDelays=[];let falseAlarms=0,repeats=0,unclosed=0;
+      for(const i of incidents.filter(i=>scored.has(i.type))) {
+        const j=result.truth.findIndex(t=>t.type===i.type && i.start>=t.start-CONFIG.matchTolerance && i.start<t.end);
+        if(j===-1) {falseAlarms++;if(i.end===null)unclosed++;}
+        else if(matched.has(j)) {repeats++;if(i.end===null && result.truth[j].end<result.duration)unclosed++;}
+        else {matched.set(j,i);delays.push(Math.max(0,i.start-result.truth[j].start));}
       }
-      return {detected:matched.size,total:result.truth.length,falseAlarms,repeats,delay:delays.length?delays.reduce((a,b)=>a+b,0)/delays.length:null};
+      for(const [j,i] of matched) {
+        const t=result.truth[j];
+        if(i.end!==null) closeDelays.push(i.end-t.end);
+        else if(t.end<result.duration) unclosed++;
+      }
+      const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+      return {detected:matched.size,total:result.truth.length,falseAlarms,repeats,unclosed,
+        delay:mean(delays),closeDelay:mean(closeDelays),closed:closeDelays.length};
     }
     return {monitor:score(result.incidents),baseline:score(result.baseline)};
   }
-  return {CONFIG,PROFILES,SCENARIOS,generate,Monitor,replay,evaluate};
+  return {CONFIG,PROFILES,SCENARIOS,generate,Monitor,replay,evaluate,medianSd};
 });
 </script>
 <script>
@@ -223,7 +264,7 @@
   const {CONFIG,PROFILES,SCENARIOS,replay,evaluate}=SensorDemo;
   const $=id=>document.getElementById(id), fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(Math.floor(n%60)).padStart(2,'0');
   let result,now=0,playing=false,lastTick=0,carry=0,benchmarkCache=null;
-  const names={quality:'Деградация качества',availability:'Нет свежих данных'};
+  const names={quality:'Деградация качества',availability:'Нет свежих данных',flags:'Невалидные флаги'}, num=v=>String(v).replace('.',',');
   for(const [id,s] of Object.entries(SCENARIOS)) {const o=document.createElement('option');o.value=id;o.textContent=s.name;$('scenario').append(o);}
   function seedValue(){return Math.max(1,Math.min(999999,Math.floor(Number($('seed').value)||42)));}
   function load(options={}) {
@@ -249,28 +290,28 @@
     if((full||s==='drift')&&now>=de && now<de+35)return ['Качество восстановилось','Монитор проверяет пять нормальных окон подряд. Это не позволяет закрывать инцидент из-за одной удачной точки.'];
     if((full||s==='drift')&&now>=ds && now<de)return ['Небольшие отклонения накапливаются','Качество постепенно снижается. CUSUM собирает свидетельства, а подтверждение по окнам отсеивает одиночные скачки.'];
     if((full||s==='spike')&&now>=60 && now<90)return ['Выброс ≠ устойчивая деградация','Одна точка упала до 40. Простой порог сработал; медиана окна и подтверждение не дали открыть устойчивый инцидент.'];
-    if(quality==='suspect') return ['CUSUM накапливает отклонения','Накопление CUSUM превысило 3, но порог тревоги 7 ещё не достигнут. Монитор собирает свидетельства — это не ложная тревога и не окончательный диагноз.'];
+    if(quality==='suspect') return ['CUSUM накапливает отклонения','Накопление CUSUM превысило '+num(CONFIG.suspect)+', но порог тревоги '+CONFIG.h+' ещё не достигнут. Монитор собирает свидетельства — это не ложная тревога и не окончательный диагноз.'];
     return ['Исправная работа',SCENARIOS[s].description];
   }
   function setStatus(prefix,status,text,detail){$(prefix+'-dot').className='dot '+status;$(prefix+'-state').textContent=text;$(prefix+'-detail').textContent=detail;}
   function render() {
     const f=result.frames[now];$('seek').value=now;$('clock').textContent=fmt(now);$('play').textContent=playing?'Ⅱ Пауза':now>=result.duration?'▶ Повторить показ':'▶ Запустить показ';
-    setStatus('quality',f.quality,{normal:'Норма',suspect:'Подозрение',alarm:'Деградация',unknown:'Нет оценки'}[f.quality], 'Режим '+f.mode+' · эталон '+(PROFILES[f.mode]?.mean??'—')+(f.quality==='unknown'?' · ожидаем свежее окно':''));
-    setStatus('fresh',f.availability==='stale'?'alarm':f.availability==='unknown'?'unknown':'normal',f.availability==='stale'?'Данные устарели':f.availability==='unknown'?'Нет измерений':'Данные свежие','Возраст: '+(f.age??'—')+' с · предел: 6 с');
-    setStatus('delivery',f.sinceReceipt>6?'alarm':'normal',f.sinceReceipt>6?'Нет сообщений':'Поток поступает','После последнего сообщения: '+(f.sinceReceipt??'—')+' с');
+    setStatus('quality',f.quality,{normal:'Норма',suspect:'Подозрение',alarm:'Деградация',unknown:'Нет оценки'}[f.quality], f.modeKnown?'Режим '+f.mode+' · эталон '+PROFILES[f.mode].mean+(f.quality==='unknown'?' · ожидаем свежее окно':''):f.mode==='—'?'Режим ещё не получен':'Режим '+f.mode+' не описан · эталона нет');
+    setStatus('fresh',f.availability==='stale'?'alarm':f.availability==='unknown'?'unknown':'normal',f.availability==='stale'?'Данные устарели':f.availability==='unknown'?'Нет измерений':'Данные свежие','Возраст: '+(f.age??'—')+' с · предел: '+CONFIG.staleAfter+' с');
+    setStatus('delivery',f.sinceReceipt>CONFIG.staleAfter?'alarm':'normal',f.sinceReceipt>CONFIG.staleAfter?'Нет сообщений':'Поток поступает','После последнего сообщения: '+(f.sinceReceipt??'—')+' с');
     $('received').textContent=f.accepted;$('late').textContent=f.lateCount;$('last-receipt').textContent=f.sinceReceipt===null?'—':fmt(now-f.sinceReceipt);$('latest-event').textContent=f.age===null?'—':fmt(now-f.age);
-    $('cusum-value').textContent=f.s.toFixed(1).replace('.',',')+' / 7';
+    $('cusum-value').textContent=f.s.toFixed(1).replace('.',',')+' / '+CONFIG.h;
     const [title,text]=context();$('stage-title').textContent=title;$('stage-text').textContent=text;
     const events=result.events.filter(e=>e.time<=now);$('incident-count').textContent=events.length+' событий';$('feed').replaceChildren();
     if(!events.length){const p=document.createElement('p');p.className='empty';p.textContent='Тревог нет. Ожидаем устойчивые признаки проблемы.';$('feed').append(p);}
     for(const event of events.slice(-5).reverse()){
-      const row=document.createElement('div');row.className='event';const time=document.createElement('time');time.textContent=fmt(event.time);const body=document.createElement('div');const title=document.createElement('strong');title.textContent=event.kind==='mode'?'Смена режима':(event.kind==='open'?'● ':'✓ ')+names[event.type];title.style.color=event.kind==='open'?'var(--red)':event.kind==='close'?'var(--green)':'var(--blue)';const p=document.createElement('p');p.textContent=event.text;body.append(title,p);row.append(time,body);$('feed').append(row);
+      const row=document.createElement('div');row.className='event';const time=document.createElement('time');time.textContent=fmt(event.time);const body=document.createElement('div');const title=document.createElement('strong');title.textContent=event.kind==='mode'?'Смена режима':event.kind==='unknown_mode'?'Неизвестный режим':(event.kind==='open'?'● ':'✓ ')+names[event.type];title.style.color=event.kind==='open'?'var(--red)':event.kind==='close'?'var(--green)':'var(--blue)';const p=document.createElement('p');p.textContent=event.text;body.append(title,p);row.append(time,body);$('feed').append(row);
     }
     drawCharts();renderReport();
   }
   function metricTable(a,b){
-    const row=(label,v,cls='')=>'<tr class="'+cls+'"><td>'+label+'</td><td>'+v.detected+' / '+v.total+'</td><td>'+(v.total-v.detected)+'</td><td>'+v.falseAlarms+'</td><td>'+v.repeats+'</td><td>'+(v.delay===null?'—':v.delay.toFixed(1)+' с')+'</td></tr>';
-    return '<div class="table-wrap"><table><thead><tr><th>Метод</th><th>Обнаружено</th><th>Пропущено</th><th>Ложные</th><th>Повторы</th><th>Ср. задержка</th></tr></thead><tbody>'+row('Наш монитор',a,'monitor-row')+row('Простой порог',b)+'</tbody></table></div>';
+    const row=(label,v,cls='')=>'<tr class="'+cls+'"><td>'+label+'</td><td>'+v.detected+' / '+v.total+'</td><td>'+(v.total-v.detected)+'</td><td>'+v.falseAlarms+'</td><td>'+v.repeats+'</td><td>'+v.unclosed+'</td><td>'+(v.delay===null?'—':v.delay.toFixed(1)+' с')+'</td><td>'+(v.closeDelay===null?'—':v.closeDelay.toFixed(1)+' с')+'</td></tr>';
+    return '<div class="table-wrap"><table><thead><tr><th>Метод</th><th>Обнаружено</th><th>Пропущено</th><th>Ложные</th><th>Повторы</th><th>Не закрыты</th><th>Ср. задержка</th><th>Ср. задержка закрытия</th></tr></thead><tbody>'+row('Наш монитор',a,'monitor-row')+row('Простой порог',b)+'</tbody></table></div>';
   }
   function renderReport(){
     if(now<result.duration){$('report').innerHTML='<div class="report-locked">Оценка появится после завершения сценария.<button id="finish">Перейти к итогу →</button></div>';$('finish').onclick=()=>seek(result.duration);return;}
@@ -316,11 +357,11 @@
       const tooltip=$('tooltip');tooltip.textContent='Измерено '+fmt(closest.event_time)+' · получено '+fmt(closest.received_at)+' · score '+closest.value.toFixed(1);tooltip.style.display='block';tooltip.style.left=Math.max(0,Math.min(w-235,event.clientX-rect.left+10))+'px';tooltip.style.top='40px';
     };svg.onpointerleave=()=>{$('tooltip').style.display='none';};
     const cs=$('cusum-svg'),ch=125,ct=15,cb=95,maxS=Math.max(10,...result.frames.slice(0,now+1).map(f=>f.s))*1.08,cy=v=>cb-v/maxS*(cb-ct);
-    cs.setAttribute('viewBox','0 0 '+w+' '+ch);cs.replaceChildren(node('title',{},'CUSUM по времени обработки, порог открытия 7'));
+    cs.setAttribute('viewBox','0 0 '+w+' '+ch);cs.replaceChildren(node('title',{},'CUSUM по времени обработки, порог открытия '+CONFIG.h));
     for(const v of [0,CONFIG.h]){cs.append(node('line',{x1:left,x2:w-right,y1:cy(v),y2:cy(v),stroke:v?'#c64242':'#e6eaf1','stroke-dasharray':v?'4 4':'none'}));if(v===0||Math.abs(cy(v)-cy(0))>=14)cs.append(node('text',{x:left-7,y:cy(v)+4,'text-anchor':'end'},String(v)));}
     const fs=result.frames.slice(0,now+1),p=fs.map((f,i)=>(i?'L':'M')+x(f.now).toFixed(2)+','+cy(f.s).toFixed(2)).join(' ');
     cs.append(node('path',{d:p,fill:'none',stroke:'#087f6a','stroke-width':1.8}));
-    cs.append(node('text',{x:w-right,y:cy(CONFIG.h)-5,'text-anchor':'end'},'Порог 7'));
+    cs.append(node('text',{x:w-right,y:cy(CONFIG.h)-5,'text-anchor':'end'},'Порог '+CONFIG.h));
     for(let i=0;i<=ticks;i++){const t=Math.round(result.duration*i/ticks);cs.append(node('text',{x:x(t),y:cb+16,'text-anchor':i===0?'start':i===ticks?'end':'middle'},fmt(t)));}
     cs.append(node('text',{x:w-right,y:ch-1,'text-anchor':'end',class:'axis-title'},'Время обработки, мин:с'));
   }
@@ -339,9 +380,9 @@
     setTimeout(()=>{
       try {
         if(!benchmarkCache){
-          const totals={monitor:{detected:0,total:0,falseAlarms:0,repeats:0,delay:null,delaySum:0},baseline:{detected:0,total:0,falseAlarms:0,repeats:0,delay:null,delaySum:0}};
-          for(const s of Object.keys(SCENARIOS))for(let seed=1;seed<=50;seed++) {const e=evaluate(replay(s,seed));for(const method of ['monitor','baseline']){const a=totals[method],b=e[method];a.detected+=b.detected;a.total+=b.total;a.falseAlarms+=b.falseAlarms;a.repeats+=b.repeats;a.delaySum+=(b.delay||0)*b.detected;}}
-          for(const a of Object.values(totals))a.delay=a.detected?a.delaySum/a.detected:null;
+          const empty=()=>({detected:0,total:0,falseAlarms:0,repeats:0,unclosed:0,delay:null,delaySum:0,closeDelay:null,closeDelaySum:0,closed:0}),totals={monitor:empty(),baseline:empty()};
+          for(const s of Object.keys(SCENARIOS))for(let seed=1;seed<=50;seed++) {const e=evaluate(replay(s,seed));for(const method of ['monitor','baseline']){const a=totals[method],b=e[method];a.detected+=b.detected;a.total+=b.total;a.falseAlarms+=b.falseAlarms;a.repeats+=b.repeats;a.unclosed+=b.unclosed;a.delaySum+=(b.delay||0)*b.detected;a.closeDelaySum+=(b.closeDelay||0)*b.closed;a.closed+=b.closed;}}
+          for(const a of Object.values(totals)){a.delay=a.detected?a.delaySum/a.detected:null;a.closeDelay=a.closed?a.closeDelaySum/a.closed:null;}
           benchmarkCache=totals;
         }
         $('benchmark-output').innerHTML='<h3>250 воспроизводимых прогонов · seed 1…50</h3>'+metricTable(benchmarkCache.monitor,benchmarkCache.baseline)+'<p class="note">5 сценариев × 50 реализаций шума. Настройка параметров по результатам этого запуска не выполняется. Сценарии остаются синтетическими.</p>';
