@@ -27,7 +27,20 @@ flowchart LR
 
 ![Датчик: живой поток с дрона, износ мотора 3](img/drone-motor3.png)
 
-## Запуск
+## Запуск одной командой
+
+```sh
+python -m pip install -r gateway/requirements.txt   # один раз
+start_demo.bat                                      # Windows, двойной клик
+python start_demo.py                                # то же из терминала
+python start_demo.py --no-drone                     # только шлюз и интерфейс
+python start_demo.py --phone http://192.168.1.5:8080 --webots "C:/Program Files/Webots/msys64/mingw64/bin/webotsw.exe"
+```
+
+Лаунчер поднимает шлюз (порт 8000), мост дрона, бортовой монитор, мост телефона и Webots с `sim/webots_drone/worlds/drift.wbt`,
+открывает браузер и по Ctrl+C останавливает всё. Интерфейс: простой режим (`/`) и «Эксперт» (`/expert`).
+
+## Запуск по частям (разработка)
 
 ```sh
 # 1. Шлюз (Python 3.11+)

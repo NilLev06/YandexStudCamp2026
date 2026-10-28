@@ -193,8 +193,11 @@ def main():
             vals, landed = features(m)
             for ch, v in vals.items():
                 if v is not None:
+                    mode = channel_mode(ch, m, landed)
+                    if modes.get(ch) != mode:
+                        buf[ch].clear()          # режим сменился: не смешиваем в одной медиане «землю» и «полёт»
                     buf[ch].append(v)
-                    modes[ch] = channel_mode(ch, m, landed)
+                    modes[ch] = mode
             # Разметка: фиксируем настенное время прохождения границ сценария
             t0 = m.get("t0", -1.0)
             if t0 is not None and t0 >= 0:

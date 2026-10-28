@@ -19,12 +19,12 @@ export const AVAILABILITY: Record<Availability, {text: string; theme: Theme; hin
 };
 
 export const INCIDENT: Record<IncidentType, {text: string; theme: Theme; color: string}> = {
-    quality: {text: 'Деградация качества', theme: 'danger', color: 'rgba(255, 61, 100, 0.16)'},
-    availability: {text: 'Нет свежих данных', theme: 'warning', color: 'rgba(255, 190, 92, 0.25)'},
-    flags: {text: 'Невалидные флаги', theme: 'warning', color: 'rgba(255, 190, 92, 0.18)'},
-    stuck: {text: 'Залипание', theme: 'info', color: 'rgba(130, 90, 230, 0.16)'},
-    noise: {text: 'Рост шума', theme: 'info', color: 'rgba(130, 90, 230, 0.12)'},
-    rate: {text: 'Частота отсчётов', theme: 'info', color: 'rgba(90, 150, 230, 0.14)'},
+    quality: {text: 'Деградация качества · гр. 2', theme: 'danger', color: 'rgba(255, 61, 100, 0.16)'},
+    availability: {text: 'Нет свежих данных · гр. 3', theme: 'warning', color: 'rgba(255, 190, 92, 0.25)'},
+    flags: {text: 'Невалидные флаги · гр. 3', theme: 'warning', color: 'rgba(255, 190, 92, 0.18)'},
+    stuck: {text: 'Залипание · гр. 5', theme: 'info', color: 'rgba(130, 90, 230, 0.16)'},
+    noise: {text: 'Рост шума · гр. 6', theme: 'info', color: 'rgba(130, 90, 230, 0.12)'},
+    rate: {text: 'Частота отсчётов · гр. 3', theme: 'info', color: 'rgba(90, 150, 230, 0.14)'},
 };
 
 export const DIAG: Record<'stuck' | 'noise' | 'rate', string> = {

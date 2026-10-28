@@ -1,11 +1,11 @@
 // Два синхронных графика датчика: измерения по времени события и CUSUM по времени решения монитора.
 import {useMemo} from 'react';
-import {Chart} from '@gravity-ui/charts';
 import type {AxisPlotBand, AxisPlotLine, ChartData, ChartSeries} from '@gravity-ui/charts';
 import {Flex, Text} from '@gravity-ui/uikit';
 
 import type {Annotation, BaselineIncident, ClockKind, Frame, IncidentType, Label, Message} from '../api/types';
 import {INCIDENT} from '../utils/format';
+import {ChartBox} from './ChartBox';
 
 export interface ChartIncident {
     type: IncidentType | string;
@@ -178,9 +178,7 @@ export function SensorCharts(props: Props) {
         <Flex direction="column" gap={3}>
             <div>
                 <Text variant="subheader-1">Измерения по времени события</Text>
-                <div style={{height}}>
-                    <Chart data={valueData} />
-                </div>
+                <ChartBox data={valueData} height={height} />
             </div>
             <div>
                 <Text variant="subheader-1">Накопление отклонений (CUSUM) по времени решения монитора</Text>
@@ -188,9 +186,7 @@ export function SensorCharts(props: Props) {
                     {' '}
                     красная линия - порог h, жёлтая - «подозрение»; шкала ограничена 4h
                 </Text>
-                <div style={{height: Math.round(height * 0.55)}}>
-                    <Chart data={cusumData} />
-                </div>
+                <ChartBox data={cusumData} height={Math.round(height * 0.55)} />
             </div>
         </Flex>
     );

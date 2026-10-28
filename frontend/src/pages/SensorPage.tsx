@@ -127,7 +127,7 @@ export function SensorPage() {
         return (
             <Flex direction="column" gap={3} className="sw-page">
                 <Alert theme="danger" title="Датчик недоступен" message={error} />
-                <Button onClick={() => navigate('/')}>К обзору</Button>
+                <Button onClick={() => navigate('/expert')}>К обзору</Button>
             </Flex>
         );
     }
@@ -181,7 +181,7 @@ export function SensorPage() {
                         view="outlined-danger"
                         onClick={async () => {
                             await api.deleteSensor(id);
-                            navigate('/');
+                            navigate('/expert');
                         }}
                     >
                         <Icon data={TrashBin} size={14} />

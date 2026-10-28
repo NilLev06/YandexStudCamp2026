@@ -26,7 +26,7 @@ export function SimulationLauncher({compact = false}: {compact?: boolean}) {
         try {
             const s = await api.simulate(scenario, Number(seed) || 0, Number(speed) || 1);
             live.upsert(s);
-            navigate(`/sensors/${encodeURIComponent(s.id)}`);
+            navigate(`/expert/sensors/${encodeURIComponent(s.id)}`);
         } finally {
             setBusy(false);
         }

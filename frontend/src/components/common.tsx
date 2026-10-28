@@ -128,7 +128,7 @@ export function IncidentsTable({
     const [ackFor, setAckFor] = useState<Incident | null>(null);
     const columns: TableColumnConfig<Incident>[] = [
         ...(showSensor
-            ? [{id: 'sensor', name: 'Датчик', template: (i: Incident) => <Link to={`/sensors/${encodeURIComponent(i.sensor_id)}`}>{i.sensor_id}</Link>}]
+            ? [{id: 'sensor', name: 'Датчик', template: (i: Incident) => <Link to={`/expert/sensors/${encodeURIComponent(i.sensor_id)}`}>{i.sensor_id}</Link>}]
             : []),
         {id: 'type', name: 'Тип', template: (i) => <IncidentLabel type={i.type} />},
         {

@@ -26,7 +26,7 @@ function SensorCard({s}: {s: SensorSummary}) {
     const border =
         st?.quality === 'alarm' || st?.availability === 'stale' ? 'sw-card_alarm' : st?.quality === 'suspect' ? 'sw-card_warn' : '';
     return (
-        <Link to={`/sensors/${encodeURIComponent(s.id)}`} className="sw-card-link">
+        <Link to={`/expert/sensors/${encodeURIComponent(s.id)}`} className="sw-card-link">
             <Card view="outlined" type="action" className={`sw-sensor-card ${border}`}>
                 <Flex direction="column" gap={2}>
                     <Flex justifyContent="space-between" alignItems="flex-start" gap={2}>
@@ -172,7 +172,7 @@ function EventLogWithSensor({events, clockOf}: {events: MonitorEvent[]; clockOf:
         <Flex direction="column" gap={4}>
             {[...groups.entries()].slice(0, 4).map(([sid, list]) => (
                 <Flex key={sid} direction="column" gap={2}>
-                    <Link to={`/sensors/${encodeURIComponent(sid)}`}>
+                    <Link to={`/expert/sensors/${encodeURIComponent(sid)}`}>
                         <Text variant="subheader-1">{sid}</Text>
                     </Link>
                     <EventLog events={list} clock={clockOf(sid)} limit={3} />

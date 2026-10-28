@@ -3,12 +3,14 @@
 короткие задержки Wi-Fi не вызывают ложную потерю связи."""
 import json
 import math
+import os
 import socket
 import threading
 import time
 import urllib.request
 
-PHONE = "http://172.22.60.144:8080"   # адрес, который показывает Phyphox
+# адрес, который показывает Phyphox (можно задать переменной PHONE_URL или в start_demo.py --phone)
+PHONE = os.environ.get("PHONE_URL", "http://172.22.60.144:8080")
 DRONE = ("127.0.0.1", 5005)
 DEAD_DEG = 5.0                        # мёртвая зона наклона, градусы
 MAX_DEG = 20.0                        # наклон для максимальной команды

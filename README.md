@@ -4,10 +4,9 @@
 > Python-ядро повторяет `demo/engine.js` бит в бит и добавляет несколько датчиков, двусторонний CUSUM, калибровку эталонов,
 > диагностику залипания, шума и частоты. Как запустить и полный список API: [`docs/GATEWAY.md`](docs/GATEWAY.md).
 >
-> ```sh
-> cd gateway && pip install -r requirements.txt && uvicorn app.main:app --port 8000
-> cd frontend && npm install && npm run dev        # http://localhost:5173
-> ```
+> **Запуск одной командой:** `start_demo.bat` (двойной клик) или `python start_demo.py` - шлюз, интерфейс, дрон и Webots.
+> Только интерфейс без дрона: `python start_demo.py --no-drone`. Интерфейс: http://localhost:8000 (простой режим и «Эксперт»).
+> Первый раз: `python -m pip install -r gateway/requirements.txt`. Node.js не нужен: собранный интерфейс лежит в `frontend/dist`.
 
 **Sensor Watch** — автономная демонстрация решения кейса № 7 «Монитор дрейфа сенсоров и качества восприятия» для Яндекс Студкемпа 2026.
 
