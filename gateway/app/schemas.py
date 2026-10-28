@@ -4,6 +4,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .engine.seeds import SEED
+
+SeedValue = Field(default=42, ge=SEED['min'], le=SEED['max'], description=f"Целое число от {SEED['min']} до {SEED['max']}")
 SensorId = Field(pattern=r'^[A-Za-z0-9_.:-]{1,64}$', examples=['camera-01'])
 IncidentType = Literal['quality', 'availability', 'flags']
 QualityStatus = Literal['normal', 'suspect', 'alarm', 'unknown']
@@ -87,8 +90,10 @@ class IncidentOut(BaseModel):
 
 
 class SimulationCreate(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     scenario: str = Field(default='combined', examples=['combined'])
-    seed: int = Field(default=42, ge=1, le=999999)
+    seed: int = SeedValue
     speed: float = Field(default=6, gt=0, description='Модельных секунд за секунду реального времени')
     sensor_id: str | None = Field(default=None, pattern=r'^[A-Za-z0-9_.:-]{1,64}$')
 
@@ -137,11 +142,21 @@ class ScenarioOut(BaseModel):
     description: str
 
 
+class RecommendedSeed(BaseModel):
+    seed: int
+    kind: Literal['reference', 'fastest', 'slowest', 'unclosed', 'near_miss']
+    label: str
+    note: str
+    value: float | None = None
+
+
 class MetaOut(BaseModel):
     version: str
     config: dict[str, float]
     profiles: dict[str, dict[str, float]]
     scenarios: list[ScenarioOut]
+    seed: dict[str, int] = Field(description='Границы seed: min, max и диапазон, на котором выбраны рекомендации (scan)')
+    recommended_seeds: dict[str, list[RecommendedSeed]]
     limits: dict[str, float]
     auth_required: bool
 
@@ -185,8 +200,10 @@ class MethodMetrics(BaseModel):
 
 
 class ReplayRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     scenario: str = Field(default='combined', examples=['combined'])
-    seed: int = Field(default=42, ge=1, le=999999)
+    seed: int = SeedValue
 
 
 class ReplayIncident(BaseModel):
@@ -231,8 +248,10 @@ class ReplayOut(BaseModel):
 
 class BenchmarkRequest(BaseModel):
     scenarios: list[str] | None = Field(default=None, description='По умолчанию все сценарии')
-    seed_from: int = Field(default=1, ge=1, le=999999)
-    seed_to: int = Field(default=50, ge=1, le=999999)
+    model_config = ConfigDict(strict=True)
+
+    seed_from: int = Field(default=1, ge=SEED['min'], le=SEED['max'])
+    seed_to: int = Field(default=50, ge=SEED['min'], le=SEED['max'])
 
 
 class BenchmarkOut(MethodMetrics):

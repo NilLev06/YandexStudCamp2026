@@ -98,11 +98,21 @@ export interface Scenario {
     description: string;
 }
 
+export interface RecommendedSeed {
+    seed: number;
+    kind: 'reference' | 'fastest' | 'slowest' | 'unclosed' | 'near_miss';
+    label: string;
+    note: string;
+    value?: number | null;
+}
+
 export interface Meta {
     version: string;
     config: Record<string, number>;
     profiles: Profiles;
     scenarios: Scenario[];
+    seed: {min: number; max: number; scan: number};
+    recommended_seeds: Record<string, RecommendedSeed[]>;
     limits: Record<string, number>;
     auth_required: boolean;
 }

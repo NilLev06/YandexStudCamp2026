@@ -6,6 +6,7 @@ import type {BenchmarkResult, Metrics, ReplayResult} from '../api/types';
 import {EventLog} from '../components/EventLog';
 import {MetricsTable} from '../components/MetricsTable';
 import {Page, Panel} from '../components/Page';
+import {SeedField, SeedPicks, seedError} from '../components/SeedField';
 import {CusumChart, GroupedBarChart, MeasurementsChart} from '../components/charts';
 import {useMeta} from '../lib/meta';
 
@@ -41,18 +42,31 @@ export function AnalysisPage() {
     };
 
     const runs = scenarios.length * Math.max(0, (range[1] ?? 0) - (range[0] ?? 0) + 1);
+    const seedInvalid = Boolean(seedError(seed, meta.seed));
+    const rangeError =
+        seedError(range[0], meta.seed) ??
+        seedError(range[1], meta.seed) ??
+        ((range[0] as number) > (range[1] as number) ? 'Начало диапазона больше конца' : runs > meta.limits.max_benchmark_runs ? `Не больше ${meta.limits.max_benchmark_runs} прогонов` : undefined);
 
     return (
         <Page title="Анализ сценариев" subtitle="Детерминированное воспроизведение и пакетная проверка на gateway">
             {error && <Alert theme="danger" title="Ошибка запроса" message={error} />}
             <Panel title="Воспроизведение">
-                <Flex gap={2} alignItems="flex-end" wrap>
+                <Flex gap={2} alignItems="flex-start" wrap>
                     <Select label="Сценарий" width={300} value={[scenario]} onUpdate={([v]) => setScenario(v)} options={meta.scenarios.map((s) => ({value: s.id, content: s.name}))} />
-                    <NumberInput label="Seed" value={seed} onUpdate={setSeed} min={1} max={999999} style={{width: 140}} />
-                    <Button view="action" loading={busy === 'replay'} onClick={() => run('replay', () => api.replay({scenario, seed: seed ?? 42}), setReplay)}>
+                    <SeedField value={seed} onUpdate={setSeed} />
+                    <Button view="action" loading={busy === 'replay'} disabled={seedInvalid} onClick={() => run('replay', () => api.replay({scenario, seed: seed as number}), setReplay)}>
                         Воспроизвести
                     </Button>
                 </Flex>
+                <SeedPicks
+                    scenario={scenario}
+                    value={seed}
+                    onPick={(s) => {
+                        setSeed(s);
+                        run('replay', () => api.replay({scenario, seed: s}), setReplay);
+                    }}
+                />
                 <Text color="secondary">{meta.scenarios.find((s) => s.id === scenario)?.description}</Text>
             </Panel>
             {replay && (
@@ -91,17 +105,18 @@ export function AnalysisPage() {
                         onUpdate={setScenarios}
                         options={meta.scenarios.map((s) => ({value: s.id, content: s.name}))}
                     />
-                    <NumberInput label="Seed с" value={range[0]} onUpdate={(v) => setRange([v, range[1]])} min={1} style={{width: 130}} />
-                    <NumberInput label="по" value={range[1]} onUpdate={(v) => setRange([range[0], v])} min={1} style={{width: 120}} />
+                    <NumberInput label="Seed с" value={range[0]} onUpdate={(v) => setRange([v, range[1]])} min={meta.seed.min} max={meta.seed.max} style={{width: 130}} />
+                    <NumberInput label="по" value={range[1]} onUpdate={(v) => setRange([range[0], v])} min={meta.seed.min} max={meta.seed.max} style={{width: 120}} />
                     <Button
                         view="action"
                         loading={busy === 'bench'}
-                        disabled={!scenarios.length || runs < 1 || runs > meta.limits.max_benchmark_runs}
+                        disabled={!scenarios.length || Boolean(rangeError)}
                         onClick={() => run('bench', () => api.benchmark({scenarios, seed_from: range[0] ?? 1, seed_to: range[1] ?? 1}), setBench)}
                     >
                         Проверить {runs} прогонов
                     </Button>
                 </Flex>
+                {rangeError && <Text color="danger">{rangeError}</Text>}
                 <Text color="secondary">
                     Параметры детектора фиксированы; это проверка устойчивости к шуму на синтетике. Порог сравнения не выровнен по бюджету ложных тревог.
                 </Text>

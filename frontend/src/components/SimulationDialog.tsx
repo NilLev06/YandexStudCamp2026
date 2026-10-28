@@ -3,6 +3,8 @@ import {useState} from 'react';
 
 import {api} from '../api/client';
 import type {Scenario, Simulation} from '../api/types';
+import {useMeta} from '../lib/meta';
+import {SeedField, SeedPicks, seedError} from './SeedField';
 
 interface Props {
     open: boolean;
@@ -19,12 +21,14 @@ export function SimulationDialog({open, scenarios, maxSpeed, onClose, onStarted}
     const [speed, setSpeed] = useState<number | null>(6);
     const [sensorId, setSensorId] = useState('');
     const [loading, setLoading] = useState(false);
+    const meta = useMeta();
     const current = scenarios.find((s) => s.id === scenario);
+    const invalid = Boolean(seedError(seed, meta.seed)) || speed === null || speed <= 0 || speed > maxSpeed;
 
     const start = async () => {
         setLoading(true);
         try {
-            const sim = await api.startSimulation({scenario, seed: seed ?? 42, speed: speed ?? 6, sensor_id: sensorId || undefined});
+            const sim = await api.startSimulation({scenario, seed: seed as number, speed: speed as number, sensor_id: sensorId || undefined});
             onStarted(sim);
             onClose();
         } catch (e) {
@@ -48,9 +52,10 @@ export function SimulationDialog({open, scenarios, maxSpeed, onClose, onStarted}
                     />
                     {current && <Text color="secondary">{current.description}</Text>}
                     <Flex gap={2}>
-                        <NumberInput label="Seed" value={seed} onUpdate={setSeed} min={1} max={999999} />
+                        <SeedField value={seed} onUpdate={setSeed} />
                         <NumberInput label="Скорость, ×" value={speed} onUpdate={setSpeed} min={0.5} max={maxSpeed} step={0.5} allowDecimal />
                     </Flex>
+                    <SeedPicks scenario={scenario} value={seed} onPick={setSeed} />
                     <TextInput label="ID сенсора" placeholder="по умолчанию sim-сценарий-seed" value={sensorId} onUpdate={setSensorId} />
                 </Flex>
             </Dialog.Body>
@@ -60,6 +65,7 @@ export function SimulationDialog({open, scenarios, maxSpeed, onClose, onStarted}
                 textButtonApply="Запустить"
                 textButtonCancel="Отмена"
                 loading={loading}
+                propsButtonApply={{disabled: invalid}}
             />
         </Dialog>
     );

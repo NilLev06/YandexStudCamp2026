@@ -15,6 +15,37 @@
     gap:{name:'Пропуск и поздняя пачка', duration:160, description:'Поток прерывается, затем приходят старые измерения. Свежие данные появляются позже.'},
     mode:{name:'Допустимая смена режима', duration:150, description:'Режим A сменяется режимом B. Ожидаемый уровень меняется с 95 на 80.'}
   };
+  const SEED = Object.freeze({min:1, max:999999, scan:1000});
+  function checkSeed(seed) {
+    if (!Number.isInteger(seed) || seed < SEED.min || seed > SEED.max) throw new RangeError('Seed должен быть целым числом от '+SEED.min+' до '+SEED.max);
+    return seed;
+  }
+  const RECOMMENDED_SEEDS = Object.freeze({
+    combined:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Сценарий защиты: тревога качества в 02:02, закрытие в 03:41, средняя задержка 14 с.'},
+      {seed:532, kind:'fastest', value:9.5, label:'Быстрое обнаружение', note:'Средняя задержка 9,5 с — минимум среди seed 1…1000.'},
+      {seed:951, kind:'slowest', value:17, label:'Медленное обнаружение', note:'Средняя задержка 17 с — максимум среди seed 1…1000.'},
+      {seed:214, kind:'unclosed', label:'Инцидент не закрылся', note:'После восстановления не набирается пяти спокойных окон подряд: инцидент качества открыт до конца записи.'}
+    ],
+    spike:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Выброс до 40: порог срабатывает, монитор инцидент не открывает.'},
+      {seed:532, kind:'near_miss', value:9.23, label:'Почти тревога', note:'CUSUM доходит до 9,23 при пороге 10 — ближе всего к ложной тревоге среди seed 1…1000.'}
+    ],
+    drift:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Тревога через 23 с после начала деградации, закрытие через 27 с после восстановления.'},
+      {seed:698, kind:'fastest', value:14, label:'Быстрое обнаружение', note:'Задержка 14 с — минимум среди seed 1…1000.'},
+      {seed:932, kind:'slowest', value:26, label:'Медленное обнаружение', note:'Задержка 26 с — максимум среди seed 1…1000.'},
+      {seed:1, kind:'unclosed', label:'Инцидент не закрылся', note:'Инцидент не успевает закрыться до конца записи — так примерно у 12% seed.'}
+    ],
+    gap:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Seed меняет только шум: разрыв обнаруживается за 6 с, инцидент закрывается через 2 с после свежих данных.'},
+      {seed:642, kind:'near_miss', value:7.55, label:'Самый шумный', note:'Наибольший CUSUM среди seed 1…1000 — 7,55 при пороге 10, тревоги нет.'}
+    ],
+    mode:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Смена режима 95 → 80 не открывает инцидент качества.'},
+      {seed:532, kind:'near_miss', value:9.23, label:'Почти тревога', note:'После смены режима CUSUM доходит до 9,23 при пороге 10 — ближе всего к ложной тревоге среди seed 1…1000.'}
+    ]
+  });
   function rng(seed) {
     let a = seed >>> 0;
     return () => { a += 0x6D2B79F5; let t = Math.imul(a ^ a >>> 15, 1 | a); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -22,6 +53,7 @@
   const median = values => {const a=[...values].sort((x,y)=>x-y); return a.length % 2 ? a[(a.length-1)/2] : (a[a.length/2-1]+a[a.length/2])/2;};
   function generate(scenario='combined', seed=42) {
     if (!SCENARIOS[scenario]) throw new Error('Неизвестный сценарий');
+    checkSeed(seed);
     const random=rng(seed), cfg=SCENARIOS[scenario], messages=[], truth=[], annotations=[];
     const normal=()=>Math.sqrt(-2*Math.log(Math.max(random(),1e-9)))*Math.cos(2*Math.PI*random());
     const full=scenario==='combined';
@@ -192,5 +224,5 @@
     }
     return {monitor:score(result.incidents),baseline:score(result.baseline)};
   }
-  return {CONFIG,PROFILES,SCENARIOS,generate,Monitor,replay,evaluate,medianSd};
+  return {CONFIG,PROFILES,SCENARIOS,SEED,RECOMMENDED_SEEDS,checkSeed,generate,Monitor,replay,evaluate,medianSd};
 });

@@ -5,6 +5,7 @@ import math
 from typing import Any
 
 from .monitor import CONFIG, PROFILES, Monitor
+from .seeds import check_seed
 
 SCENARIOS: dict[str, dict[str, Any]] = {
     'combined': {'name': 'Полная демонстрация', 'duration': 390, 'description': 'Выброс → плавная деградация → восстановление → пропуск и старые сообщения → смена режима.'},
@@ -42,6 +43,7 @@ def _round3(v: float) -> float:
 def generate(scenario: str = 'combined', seed: int = 42) -> dict[str, Any]:
     if scenario not in SCENARIOS:
         raise ValueError('Неизвестный сценарий')
+    check_seed(seed)
     random = rng(seed)
     cfg = SCENARIOS[scenario]
     messages: list[dict[str, Any]] = []

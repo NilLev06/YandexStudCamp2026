@@ -5,7 +5,7 @@
 <title>Sensor Watch — демонстрация кейса № 7</title>
 <style>
 :root{color-scheme:light;--bg:#f4f6fa;--paper:#fff;--ink:#17243b;--muted:#63718a;--line:#e4e9f2;--blue:#4263eb;--green:#087f6a;--red:#c64242;--amber:#a16c07;--nav:#17243b;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}button,input,select{font:inherit}button,select,input[type=range],summary{cursor:pointer}button{border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);padding:9px 13px;min-height:40px;font-weight:600}button:hover{border-color:var(--blue);background:#f5f7ff}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--blue);color:white;border-color:var(--blue)}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #a8b8ff;outline-offset:3px}select,input[type=number]{border:1px solid var(--line);border-radius:8px;background:white;padding:9px;color:var(--ink);max-width:100%}label{font-size:13px;color:var(--muted)}h1,h2,h3,p{margin:0}h1{font-size:30px;letter-spacing:-1px;line-height:1.2}h2{font-size:17px;letter-spacing:-.3px}h3{font-size:14px}a{color:var(--blue)}.shell{max-width:1540px;margin:auto}.topbar{background:var(--nav);color:white;padding:16px 30px;display:flex;align-items:center;gap:14px}.brand{font-size:18px;font-weight:750;letter-spacing:-.4px}.brand-icon{background:#f4cd54;color:var(--nav);padding:4px 8px;border-radius:6px;margin-right:8px}.topbar small{color:#bcc8da}.topbar .tag{margin-left:auto;color:#e3e9f5;border:1px solid #48556c;border-radius:20px;padding:4px 10px;font-size:12px}.main{padding:26px 30px 32px}.heading{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:22px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:1.7px;color:var(--muted);margin-bottom:7px}.subtitle{color:var(--muted);margin-top:8px;font-size:14px}.offline{color:var(--green);font-size:12px;white-space:nowrap}.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px}.toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:14px}.field{display:flex;flex-direction:column;gap:5px}.scenario-field{flex:1;min-width:230px}.seed-field{width:85px}.speed-field{width:95px}.transport{display:flex;gap:8px;flex-wrap:wrap}.scrubber{display:flex;align-items:center;gap:14px}.scrubber input{flex:1;min-width:80px;accent-color:var(--blue)}.clock{font-variant-numeric:tabular-nums;font-size:13px;font-weight:650;white-space:nowrap}.moments{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.moments button{padding:4px 9px;min-height:30px;font-size:12px;font-weight:500}.status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 0}.status{padding:17px 20px}.status .label{font-size:12px;color:var(--muted);margin-bottom:6px}.status .value{font-size:20px;font-weight:700;display:flex;align-items:center;gap:9px}.status .detail{font-size:12px;color:var(--muted);margin-top:5px}.dot{height:8px;width:8px;border-radius:50%;display:inline-block;background:var(--green);flex:none}.dot.alarm{background:var(--red)}.dot.suspect{background:var(--amber)}.dot.unknown{background:var(--muted)}.content{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}.chart-panel{padding:20px 20px 12px;min-width:0}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:9px}.legend{display:flex;gap:13px;flex-wrap:wrap;color:var(--muted);font-size:11px;align-items:center}.key{display:inline-block;width:17px;height:3px;margin-right:5px;vertical-align:middle}.legend label{font-size:11px;display:flex;align-items:center;gap:4px}.legend input{accent-color:var(--blue)}.chart{position:relative;width:100%;min-width:0}.chart svg{width:100%;display:block;overflow:visible}.chart svg text{font:11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:var(--muted)}.chart svg .axis-title{font-size:11px;fill:var(--ink)}.chart-caption{font-size:11px;color:var(--muted);margin:4px 0 14px}.rule{height:1px;background:var(--line);margin:15px 0}.small-title{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-top:4px}.small-title span{color:var(--muted)}.tooltip{display:none;position:absolute;pointer-events:none;background:var(--nav);color:white;border-radius:8px;padding:9px 12px;font-size:12px;z-index:3;max-width:230px;box-shadow:0 5px 20px #17243b22}.aside{display:flex;flex-direction:column;gap:14px}.context{background:#eef2ff;border-color:#dce3ff}.context .eyebrow{color:var(--blue)}.context h2{margin:4px 0 8px}.context p{font-size:13px;color:#465775}.feed{padding:18px}.feed-items{display:flex;flex-direction:column;gap:15px;margin-top:16px}.event{display:grid;grid-template-columns:38px 1fr;gap:10px;font-size:12px}.event time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px;padding-top:2px}.event strong{font-size:12px;display:block;margin-bottom:3px}.event p{font-size:11px;color:var(--muted)}.empty{font-size:12px;color:var(--muted);padding:4px 0}.receipt-row{display:flex;justify-content:space-between;gap:12px;margin-top:9px;font-size:12px}.receipt-row span{color:var(--muted)}.receipt-row b{font-variant-numeric:tabular-nums}.results{margin-top:16px}.results .hint{font-size:12px;color:var(--muted);margin:5px 0 14px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}th{font-size:11px;color:var(--muted);font-weight:600}td:not(:first-child),th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}.monitor-row{background:#eff8f5}.monitor-row td:first-child{color:var(--green);font-weight:650}.report-locked{color:var(--muted);font-size:13px;padding:10px 0}.report-locked button{margin-left:10px}.method{margin-top:16px}.method summary{font-size:13px;font-weight:650}.method-body{margin-top:15px;display:grid;grid-template-columns:1fr 1fr;gap:22px;font-size:12px;color:var(--muted)}.method-body strong{color:var(--ink)}.method-body ul{padding-left:18px;margin:8px 0 0}.method-body li{margin-bottom:6px}.note{font-size:11px;color:var(--muted);margin-top:13px}.benchmark-output{margin-top:12px}.benchmark-output:empty{display:none}.footer{font-size:11px;color:var(--muted);margin-top:18px;display:flex;gap:15px;justify-content:space-between;flex-wrap:wrap}.benchmark-output .table-wrap{margin-top:10px}.param{font-family:ui-monospace,SFMono-Regular,monospace}.spark-note{color:var(--muted);font-size:12px;margin-bottom:4px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}button,input,select{font:inherit}button,select,input[type=range],summary{cursor:pointer}button{border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);padding:9px 13px;min-height:40px;font-weight:600}button:hover{border-color:var(--blue);background:#f5f7ff}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--blue);color:white;border-color:var(--blue)}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #a8b8ff;outline-offset:3px}select,input[type=number]{border:1px solid var(--line);border-radius:8px;background:white;padding:9px;color:var(--ink);max-width:100%}label{font-size:13px;color:var(--muted)}h1,h2,h3,p{margin:0}h1{font-size:30px;letter-spacing:-1px;line-height:1.2}h2{font-size:17px;letter-spacing:-.3px}h3{font-size:14px}a{color:var(--blue)}.shell{max-width:1540px;margin:auto}.topbar{background:var(--nav);color:white;padding:16px 30px;display:flex;align-items:center;gap:14px}.brand{font-size:18px;font-weight:750;letter-spacing:-.4px}.brand-icon{background:#f4cd54;color:var(--nav);padding:4px 8px;border-radius:6px;margin-right:8px}.topbar small{color:#bcc8da}.topbar .tag{margin-left:auto;color:#e3e9f5;border:1px solid #48556c;border-radius:20px;padding:4px 10px;font-size:12px}.main{padding:26px 30px 32px}.heading{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:22px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:1.7px;color:var(--muted);margin-bottom:7px}.subtitle{color:var(--muted);margin-top:8px;font-size:14px}.offline{color:var(--green);font-size:12px;white-space:nowrap}.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px}.toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:14px}.field{display:flex;flex-direction:column;gap:5px}.scenario-field{flex:1;min-width:230px}.seed-field{width:85px}.speed-field{width:95px}.transport{display:flex;gap:8px;flex-wrap:wrap}.scrubber{display:flex;align-items:center;gap:14px}.scrubber input{flex:1;min-width:80px;accent-color:var(--blue)}.clock{font-variant-numeric:tabular-nums;font-size:13px;font-weight:650;white-space:nowrap}.moments{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.seed-picks{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:-4px 0 14px;font-size:12px;color:var(--muted)}.seed-picks button{padding:4px 10px;min-height:30px;font-size:12px;font-weight:500}.seed-picks button b{font-variant-numeric:tabular-nums;margin-right:4px}.seed-picks button.active{border-color:var(--blue);background:#eef2ff;color:var(--blue)}.seed-error{color:var(--red);font-size:12px;margin:-4px 0 10px}input[aria-invalid=true]{border-color:var(--red);outline-color:var(--red)}.moments button{padding:4px 9px;min-height:30px;font-size:12px;font-weight:500}.status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 0}.status{padding:17px 20px}.status .label{font-size:12px;color:var(--muted);margin-bottom:6px}.status .value{font-size:20px;font-weight:700;display:flex;align-items:center;gap:9px}.status .detail{font-size:12px;color:var(--muted);margin-top:5px}.dot{height:8px;width:8px;border-radius:50%;display:inline-block;background:var(--green);flex:none}.dot.alarm{background:var(--red)}.dot.suspect{background:var(--amber)}.dot.unknown{background:var(--muted)}.content{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}.chart-panel{padding:20px 20px 12px;min-width:0}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:9px}.legend{display:flex;gap:13px;flex-wrap:wrap;color:var(--muted);font-size:11px;align-items:center}.key{display:inline-block;width:17px;height:3px;margin-right:5px;vertical-align:middle}.legend label{font-size:11px;display:flex;align-items:center;gap:4px}.legend input{accent-color:var(--blue)}.chart{position:relative;width:100%;min-width:0}.chart svg{width:100%;display:block;overflow:visible}.chart svg text{font:11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:var(--muted)}.chart svg .axis-title{font-size:11px;fill:var(--ink)}.chart-caption{font-size:11px;color:var(--muted);margin:4px 0 14px}.rule{height:1px;background:var(--line);margin:15px 0}.small-title{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-top:4px}.small-title span{color:var(--muted)}.tooltip{display:none;position:absolute;pointer-events:none;background:var(--nav);color:white;border-radius:8px;padding:9px 12px;font-size:12px;z-index:3;max-width:230px;box-shadow:0 5px 20px #17243b22}.aside{display:flex;flex-direction:column;gap:14px}.context{background:#eef2ff;border-color:#dce3ff}.context .eyebrow{color:var(--blue)}.context h2{margin:4px 0 8px}.context p{font-size:13px;color:#465775}.feed{padding:18px}.feed-items{display:flex;flex-direction:column;gap:15px;margin-top:16px}.event{display:grid;grid-template-columns:38px 1fr;gap:10px;font-size:12px}.event time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px;padding-top:2px}.event strong{font-size:12px;display:block;margin-bottom:3px}.event p{font-size:11px;color:var(--muted)}.empty{font-size:12px;color:var(--muted);padding:4px 0}.receipt-row{display:flex;justify-content:space-between;gap:12px;margin-top:9px;font-size:12px}.receipt-row span{color:var(--muted)}.receipt-row b{font-variant-numeric:tabular-nums}.results{margin-top:16px}.results .hint{font-size:12px;color:var(--muted);margin:5px 0 14px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}th{font-size:11px;color:var(--muted);font-weight:600}td:not(:first-child),th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}.monitor-row{background:#eff8f5}.monitor-row td:first-child{color:var(--green);font-weight:650}.report-locked{color:var(--muted);font-size:13px;padding:10px 0}.report-locked button{margin-left:10px}.method{margin-top:16px}.method summary{font-size:13px;font-weight:650}.method-body{margin-top:15px;display:grid;grid-template-columns:1fr 1fr;gap:22px;font-size:12px;color:var(--muted)}.method-body strong{color:var(--ink)}.method-body ul{padding-left:18px;margin:8px 0 0}.method-body li{margin-bottom:6px}.note{font-size:11px;color:var(--muted);margin-top:13px}.benchmark-output{margin-top:12px}.benchmark-output:empty{display:none}.footer{font-size:11px;color:var(--muted);margin-top:18px;display:flex;gap:15px;justify-content:space-between;flex-wrap:wrap}.benchmark-output .table-wrap{margin-top:10px}.param{font-family:ui-monospace,SFMono-Regular,monospace}.spark-note{color:var(--muted);font-size:12px;margin-bottom:4px}
 @media(min-width:1400px){h1{font-size:34px}.chart-panel{padding:22px}.main{padding:30px 36px}}
 @media(max-width:1050px){.content{grid-template-columns:minmax(0,1fr)}.aside{display:grid;grid-template-columns:1fr 1fr}.feed{grid-column:1/-1}.feed-items{display:grid;grid-template-columns:1fr 1fr}.heading{align-items:start}.offline{display:none}}
 @media(max-width:650px){.topbar{padding:14px 16px}.topbar small{display:none}.topbar .tag{font-size:10px}.main{padding:18px 12px}h1{font-size:25px}.panel{padding:15px}.status-grid{grid-template-columns:1fr;gap:8px}.status{padding:12px 15px}.status .value{font-size:18px}.status .detail{margin-top:3px}.aside,.feed-items,.method-body{display:block}.aside>.panel{margin-bottom:12px}.event{margin-bottom:14px}.method-body>div+div{margin-top:18px}.scenario-field{min-width:100%;width:100%}.transport{width:100%}.transport button{flex:1}.heading{margin-bottom:16px}.scrubber{gap:6px}.clock{font-size:11px}.chart-panel{padding:15px 10px}.status .label{margin-bottom:3px}.content{gap:12px}.legend{gap:9px}.results .panel-head{align-items:start}.results .panel-head button{font-size:12px}th,td{padding:9px 7px;font-size:11px}.topbar .brand{font-size:16px}.topbar .tag{padding:3px 7px}}
@@ -20,10 +20,12 @@
     <section class="panel" aria-label="Воспроизведение сценария">
       <div class="toolbar">
         <label class="field scenario-field">Сценарий<select id="scenario"></select></label>
-        <label class="field seed-field">Seed<input type="number" id="seed" value="42" min="1" max="999999"></label>
+        <label class="field seed-field">Seed<input type="number" id="seed" value="42" min="1" max="999999" step="1" inputmode="numeric" aria-describedby="seed-error"></label>
         <label class="field speed-field">Скорость<select id="speed"><option value="1">1×</option><option value="3">3×</option><option value="6" selected>6×</option><option value="12">12×</option></select></label>
         <div class="transport"><button id="restart" aria-label="Вернуться к началу">↺ Сначала</button><button id="play" class="primary">▶ Запустить показ</button></div>
       </div>
+      <div class="seed-error" id="seed-error" role="alert" hidden></div>
+      <div class="seed-picks" id="seed-picks" aria-label="Рекомендованные seed"></div>
       <div class="scrubber"><span id="clock" class="clock">00:00</span><input type="range" id="seek" min="0" max="390" value="0" aria-label="Время воспроизведения, секунды"><span id="duration" class="clock">06:30</span></div>
       <div class="moments" id="moments" aria-label="Переход к ключевому моменту"></div>
       <div class="note"><span id="stream-seed"></span> · Seed меняет шум; тип и время событий задаёт сценарий.</div>
@@ -62,7 +64,7 @@
     <footer class="footer"><span>Sensor Watch · Монитор дрейфа сенсоров и качества восприятия</span><span>Синтетические данные · воспроизводимый seed · автономный прототип</span></footer>
   </main>
 </div>
-<script><script>(function (root, factory) {
+<script>(function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SensorDemo = api;
@@ -79,6 +81,37 @@
     gap:{name:'Пропуск и поздняя пачка', duration:160, description:'Поток прерывается, затем приходят старые измерения. Свежие данные появляются позже.'},
     mode:{name:'Допустимая смена режима', duration:150, description:'Режим A сменяется режимом B. Ожидаемый уровень меняется с 95 на 80.'}
   };
+  const SEED = Object.freeze({min:1, max:999999, scan:1000});
+  function checkSeed(seed) {
+    if (!Number.isInteger(seed) || seed < SEED.min || seed > SEED.max) throw new RangeError('Seed должен быть целым числом от '+SEED.min+' до '+SEED.max);
+    return seed;
+  }
+  const RECOMMENDED_SEEDS = Object.freeze({
+    combined:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Сценарий защиты: тревога качества в 02:02, закрытие в 03:41, средняя задержка 14 с.'},
+      {seed:532, kind:'fastest', value:9.5, label:'Быстрое обнаружение', note:'Средняя задержка 9,5 с — минимум среди seed 1…1000.'},
+      {seed:951, kind:'slowest', value:17, label:'Медленное обнаружение', note:'Средняя задержка 17 с — максимум среди seed 1…1000.'},
+      {seed:214, kind:'unclosed', label:'Инцидент не закрылся', note:'После восстановления не набирается пяти спокойных окон подряд: инцидент качества открыт до конца записи.'}
+    ],
+    spike:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Выброс до 40: порог срабатывает, монитор инцидент не открывает.'},
+      {seed:532, kind:'near_miss', value:9.23, label:'Почти тревога', note:'CUSUM доходит до 9,23 при пороге 10 — ближе всего к ложной тревоге среди seed 1…1000.'}
+    ],
+    drift:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Тревога через 23 с после начала деградации, закрытие через 27 с после восстановления.'},
+      {seed:698, kind:'fastest', value:14, label:'Быстрое обнаружение', note:'Задержка 14 с — минимум среди seed 1…1000.'},
+      {seed:932, kind:'slowest', value:26, label:'Медленное обнаружение', note:'Задержка 26 с — максимум среди seed 1…1000.'},
+      {seed:1, kind:'unclosed', label:'Инцидент не закрылся', note:'Инцидент не успевает закрыться до конца записи — так примерно у 12% seed.'}
+    ],
+    gap:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Seed меняет только шум: разрыв обнаруживается за 6 с, инцидент закрывается через 2 с после свежих данных.'},
+      {seed:642, kind:'near_miss', value:7.55, label:'Самый шумный', note:'Наибольший CUSUM среди seed 1…1000 — 7,55 при пороге 10, тревоги нет.'}
+    ],
+    mode:[
+      {seed:42, kind:'reference', label:'Эталон', note:'Смена режима 95 → 80 не открывает инцидент качества.'},
+      {seed:532, kind:'near_miss', value:9.23, label:'Почти тревога', note:'После смены режима CUSUM доходит до 9,23 при пороге 10 — ближе всего к ложной тревоге среди seed 1…1000.'}
+    ]
+  });
   function rng(seed) {
     let a = seed >>> 0;
     return () => { a += 0x6D2B79F5; let t = Math.imul(a ^ a >>> 15, 1 | a); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -86,6 +119,7 @@
   const median = values => {const a=[...values].sort((x,y)=>x-y); return a.length % 2 ? a[(a.length-1)/2] : (a[a.length/2-1]+a[a.length/2])/2;};
   function generate(scenario='combined', seed=42) {
     if (!SCENARIOS[scenario]) throw new Error('Неизвестный сценарий');
+    checkSeed(seed);
     const random=rng(seed), cfg=SCENARIOS[scenario], messages=[], truth=[], annotations=[];
     const normal=()=>Math.sqrt(-2*Math.log(Math.max(random(),1e-9)))*Math.cos(2*Math.PI*random());
     const full=scenario==='combined';
@@ -256,23 +290,32 @@
     }
     return {monitor:score(result.incidents),baseline:score(result.baseline)};
   }
-  return {CONFIG,PROFILES,SCENARIOS,generate,Monitor,replay,evaluate,medianSd};
+  return {CONFIG,PROFILES,SCENARIOS,SEED,RECOMMENDED_SEEDS,checkSeed,generate,Monitor,replay,evaluate,medianSd};
 });
-</script></script>
+</script>
 <script>
 (() => {
   'use strict';
-  const {CONFIG,PROFILES,SCENARIOS,replay,evaluate}=SensorDemo;
+  const {CONFIG,PROFILES,SCENARIOS,SEED,RECOMMENDED_SEEDS,replay,evaluate}=SensorDemo;
   const $=id=>document.getElementById(id), fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(Math.floor(n%60)).padStart(2,'0');
   let result,now=0,playing=false,lastTick=0,carry=0,benchmarkCache=null;
   const names={quality:'Деградация качества',availability:'Нет свежих данных',flags:'Невалидные флаги'}, num=v=>String(v).replace('.',',');
   for(const [id,s] of Object.entries(SCENARIOS)) {const o=document.createElement('option');o.value=id;o.textContent=s.name;$('scenario').append(o);}
-  function seedValue(){return Math.max(1,Math.min(999999,Math.floor(Number($('seed').value)||42)));}
+  const seedRange='от '+SEED.min+' до '+SEED.max.toLocaleString('ru-RU');
+  function seedValue(){const raw=$('seed').value.trim(),n=Number(raw);return raw!==''&&Number.isInteger(n)&&n>=SEED.min&&n<=SEED.max?n:null;}
+  function seedError(text,invalid=!!text){$('seed-error').textContent=text||'';$('seed-error').hidden=!text;$('seed').setAttribute('aria-invalid',String(invalid));}
+  function recommended(){return (RECOMMENDED_SEEDS[result.scenario]||[]).find(r=>r.seed===result.seed);}
+  function renderPicks(){
+    const box=$('seed-picks');box.replaceChildren();const label=document.createElement('span');label.textContent='Рекомендуемые seed:';box.append(label);
+    for(const r of RECOMMENDED_SEEDS[result.scenario]||[]){const b=document.createElement('button');b.type='button';b.title=r.note;b.className=r.seed===result.seed?'active':'';b.setAttribute('aria-pressed',String(r.seed===result.seed));
+      const n=document.createElement('b');n.textContent=r.seed;b.append(n,r.label);b.onclick=()=>{$('seed').value=r.seed;seedError('');load();};box.append(b);}
+  }
   function load(options={}) {
     const previousTime=options.preserveTime?now:0;
-    playing=false;now=0;carry=0;$('seed').value=seedValue();
-    result=replay($('scenario').value,seedValue());$('seek').max=result.duration;$('duration').textContent=fmt(result.duration);
-    now=Math.min(previousTime,result.duration);$('stream-seed').textContent='Показан поток с seed '+result.seed;
+    const seed=seedValue()??result?.seed??42;
+    playing=false;now=0;carry=0;$('seed').value=seed;seedError('');
+    result=replay($('scenario').value,seed);$('seek').max=result.duration;$('duration').textContent=fmt(result.duration);
+    now=Math.min(previousTime,result.duration);const rec=recommended();$('stream-seed').textContent='Показан поток с seed '+result.seed+(rec?' — '+rec.label.toLowerCase()+': '+rec.note:'');renderPicks();
     $('benchmark-output').replaceChildren();
     const full=result.scenario==='combined';
     const stops=full?[[65,'Выброс'],[130,'Дрейф'],[225,'Восстановление'],[290,'Старая пачка'],[350,'Режим B']]:result.scenario==='spike'?[[65,'Выброс'],[100,'После выброса']]:result.scenario==='drift'?[[90,'Дрейф'],[200,'Восстановление']]:result.scenario==='gap'?[[80,'Тишина'],[110,'Старая пачка'],[123,'Свежие данные']]:[[55,'Режим A'],[80,'Режим B']];
@@ -367,8 +410,9 @@
     cs.append(node('text',{x:w-right,y:ch-1,'text-anchor':'end',class:'axis-title'},'Время обработки, мин:с'));
   }
   $('scenario').onchange=()=>load();
-  $('seed').oninput=()=>{const seed=$('seed').valueAsNumber;if(Number.isInteger(seed)&&seed>=1&&seed<=999999)load({preserveTime:true});};
-  $('seed').onchange=()=>load({preserveTime:true});
+  $('seed').min=SEED.min;$('seed').max=SEED.max;
+  $('seed').oninput=()=>{if(seedValue()===null)seedError('Seed — целое число '+seedRange+'.');else if(seedValue()!==result.seed)load({preserveTime:true});};
+  $('seed').onchange=()=>{if(seedValue()!==null)return;$('seed').value=result.seed;seedError('Seed — целое число '+seedRange+'; оставлен seed '+result.seed+'.',false);};
   $('seek').oninput=()=>seek(Number($('seek').value));
   $('restart').onclick=()=>seek(0);$('play').onclick=()=>{if(now>=result.duration)now=0;playing=!playing;carry=0;lastTick=performance.now();render();};
   $('show-baseline').onchange=drawCharts;$('show-truth').onchange=drawCharts;
