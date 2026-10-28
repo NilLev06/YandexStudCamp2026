@@ -166,7 +166,8 @@
         const slot=this.buckets.get(bucket);slot.r.push((profile.mean-m.value)/profile.sigma);slot.mode=m.mode;
       }
       const finalized=Math.floor((now-CONFIG.lateness)/CONFIG.bucket)-1;
-      for(let b=this.lastBucket+1;b<=finalized;b++) {
+      const due=[...new Set([...this.buckets.keys(),...this.badBuckets.keys()])].filter(b=>b>this.lastBucket&&b<=finalized).sort((a,b)=>a-b);
+      for(const b of due) {
         const values=this.buckets.get(b)?.r||[], slotMode=this.buckets.get(b)?.mode, badCount=this.badBuckets.get(b)||0, totalCount=values.length+badCount;
         this.buckets.delete(b);this.badBuckets.delete(b);
         if(totalCount>=2) {

@@ -119,3 +119,8 @@ test('баг 8: оценка учитывает задержку закрыти�
   assert.equal(e.detected, 2); assert.equal(e.falseAlarms, 0); assert.equal(e.delay, 5);
   assert.equal(e.closeDelay, 5); assert.equal(e.unclosed, 1);
 });
+test('монитор работает со временем Unix без перебора пустых окон', () => {
+  const m = new api.Monitor(), t0 = 1761600000;
+  let f; for (let t = 0; t < 30; t++) f = m.tick(t0 + t, [msg(t0 + t)]);
+  assert.equal(f.quality, 'normal'); assert.equal(f.availability, 'fresh');
+});

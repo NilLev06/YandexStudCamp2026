@@ -9,3 +9,12 @@ docs/superpowers/
 # Browser QA helpers with machine-specific runtime paths
 demo/browser-check.cjs
 demo/seed-check.cjs
+
+# Gateway (Python)
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+
+# Frontend build
+frontend/dist/
