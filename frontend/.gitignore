@@ -8,7 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+# dist хранится в репозитории: для показа не нужен Node.js
 dist-ssr
 *.local
 
