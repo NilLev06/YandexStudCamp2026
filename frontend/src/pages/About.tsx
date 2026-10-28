@@ -49,7 +49,22 @@ export function AboutPage() {
                                 </Flex>
                             ),
                         },
-                        {id: 'cases', name: 'Случаи', template: (g) => g.cases},
+                        {
+                            id: 'cases',
+                            name: 'Случаи документа и сценарий проверки',
+                            template: (g) => (
+                                <Flex direction="column" gap={1}>
+                                    {g.variants.map((v) => (
+                                        <Text key={v.label}>
+                                            <b>{v.cases}</b> · {v.label}{' '}
+                                            <Text color="secondary" variant="code-1">
+                                                {v.scenario ?? 'дрон'}
+                                            </Text>
+                                        </Text>
+                                    ))}
+                                </Flex>
+                            ),
+                        },
                         {
                             id: 'req',
                             name: 'Нужно',

@@ -9,7 +9,7 @@ import type {TickListener} from '../api/live';
 import type {Frame, Incident, Message, MonitorEvent, RunResult, SensorDetail} from '../api/types';
 import {SimpleChart} from '../components/SimpleChart';
 import {DOC_URL, GROUPS, groupById} from '../groups';
-import type {Group} from '../groups';
+import type {Group, Variant} from '../groups';
 import {INCIDENT, fmtDuration, fmtNum, fmtTime} from '../utils/format';
 import {narrate, summarize} from '../utils/narrate';
 import type {Tone} from '../utils/narrate';
@@ -24,6 +24,8 @@ const DRONE_CHANNELS: {id: string; label: string}[] = [
     {id: 'mavic.vib', label: 'Вибрация'},
     {id: 'mavic.gyro', label: 'Гироскоп'},
 ];
+
+const UNITS: Record<string, string> = {pair: '°C (y2 - y1)', gain: 'изм./зад.'};
 
 interface View {
     clock: 'sim' | 'wall';
@@ -91,7 +93,7 @@ function useReplay(scenario: string | null) {
             recent: messages.filter((m) => now - m.received_at <= 3),
             h: Number(run.config.h),
             staleAfter: Number(run.config.stale_after),
-            unit: 'score',
+            unit: UNITS[run.scenario] ?? 'score',
         };
     }, [run, t]);
 
@@ -161,14 +163,22 @@ function useLiveSensor(id: string | null) {
 // ------------------------------------------------------------------ страница
 export function DemoPage() {
     const [pick, setPick] = useState<Pick>(2);
+    const [vi, setVi] = useState(0);              // какой случай группы показываем
     const [channel, setChannel] = useState('mavic.motor3');
     const [showBaseline, setShowBaseline] = useState(false);
     const sensors = useSensors();
     const droneOnline = sensors.some((s) => s.id.startsWith('mavic.'));
 
     const group = pick === 'all' ? undefined : groupById(pick);
-    const isLive = !!group?.live;
-    const scenario = pick === 'all' ? ALL.scenario : group?.scenario ?? null;
+    const variant: Variant | undefined = group?.variants[Math.min(vi, (group?.variants.length ?? 1) - 1)];
+    const isLive = !!variant?.live;
+    const scenario = pick === 'all' ? ALL.scenario : variant?.scenario ?? null;
+    const choose = (id: Pick) => {
+        setPick(id);
+        // группа 7: если дрон не подключён, сразу показываем сценарий двух датчиков
+        const g = id === 'all' ? undefined : groupById(id);
+        setVi(g?.variants[0]?.live && !droneOnline ? 1 : 0);
+    };
     const replay = useReplay(isLive ? null : scenario);
     const live = useLiveSensor(isLive && droneOnline ? channel : null);
     const view = isLive ? live.view : replay.view;
@@ -179,7 +189,7 @@ export function DemoPage() {
         : view
         ? narrate({frames: view.frames, events: view.events, recent: view.recent, h: view.h, staleAfter: view.staleAfter, started: true})
         : narrate({frames: [], events: [], recent: [], h: 10, staleAfter: 6, started: false});
-    const focusGroup = groupById(narration.group) ?? group;
+    const focusGroup = group ?? groupById(narration.group);
 
     return (
         <Flex direction="column" gap={4} className="sw-demo">
@@ -196,15 +206,15 @@ export function DemoPage() {
                         key={g.id}
                         g={g}
                         active={pick === g.id}
-                        disabled={!!g.live && !droneOnline}
-                        onClick={() => setPick(g.id)}
+                        disabled={false}
+                        onClick={() => choose(g.id)}
                     />
                 ))}
                 <Card
                     view={pick === 'all' ? 'outlined' : 'raised'}
                     type="selection"
                     selected={pick === 'all'}
-                    onClick={() => setPick('all')}
+                    onClick={() => choose('all')}
                     className="sw-group-card"
                 >
                     <Flex direction="column" gap={1}>
@@ -217,6 +227,16 @@ export function DemoPage() {
                 </Card>
             </div>
 
+            {group && group.variants.length > 1 && (
+                <Flex gap={2} alignItems="center" wrap>
+                    <Text color="secondary">Случай из документа:</Text>
+                    <SegmentedRadioGroup
+                        value={String(group.variants.indexOf(variant as Variant))}
+                        onUpdate={(v) => setVi(Number(v))}
+                        options={group.variants.map((v, i) => ({value: String(i), content: `${v.cases} · ${v.label}`}))}
+                    />
+                </Flex>
+            )}
             {isLive && !droneOnline && (
                 <Card view="filled" theme="warning" className="sw-panel">
                     <Text>
@@ -275,7 +295,7 @@ export function DemoPage() {
 
                         <NarrationBox text={narration.text} tone={narration.tone} group={narration.group} />
 
-                        {view && <IncidentStrip view={view} />}
+                        {view && <IncidentStrip view={view} group={group?.id} />}
 
                         {!isLive && replay.run && replay.t >= replay.run.duration && (
                             <ResultCard run={replay.run} showBaseline={() => setShowBaseline(true)} />
@@ -284,7 +304,7 @@ export function DemoPage() {
 
                     <Flex direction="column" gap={3}>
                         <Lights frame={view?.frames.at(-1)} h={view?.h ?? 10} staleAfter={view?.staleAfter ?? 6} />
-                        {focusGroup && <GroupInfo g={focusGroup} />}
+                        {focusGroup && <GroupInfo g={focusGroup} variant={focusGroup === group ? variant : undefined} />}
                     </Flex>
                 </div>
             )}
@@ -458,7 +478,7 @@ function Lights({frame, h, staleAfter}: {frame?: Frame; h: number; staleAfter: n
     );
 }
 
-function GroupInfo({g}: {g: Group}) {
+function GroupInfo({g, variant}: {g: Group; variant?: Variant}) {
     return (
         <Card view="filled" className="sw-panel">
             <Flex direction="column" gap={2}>
@@ -471,6 +491,14 @@ function GroupInfo({g}: {g: Group}) {
                 <Text variant="caption-2" color="secondary">Чем ловим</Text>
                 <Text>{g.detector}</Text>
                 <code className="sw-formula">{g.formula}</code>
+                {variant && (
+                    <>
+                        <Text variant="caption-2" color="secondary">
+                            Случай {variant.cases} · {variant.label}: как его видит детектор группы
+                        </Text>
+                        <Text>{variant.how}</Text>
+                    </>
+                )}
                 <Text variant="caption-2" color="secondary">Реакция</Text>
                 <Text>{g.reaction}</Text>
                 <Button view="outlined" href={DOC_URL} target="_blank">
@@ -481,7 +509,7 @@ function GroupInfo({g}: {g: Group}) {
     );
 }
 
-function IncidentStrip({view}: {view: View}) {
+function IncidentStrip({view, group}: {view: View; group?: number}) {
     const list = [...view.incidents].sort((a, b) => a.start - b.start);
     return (
         <Card view="outlined" className="sw-panel">
@@ -489,7 +517,9 @@ function IncidentStrip({view}: {view: View}) {
                 <Text variant="subheader-2">Решения монитора</Text>
                 {!list.length && <Text color="secondary">Тревог нет.</Text>}
                 {list.map((i, k) => {
-                    const info = INCIDENT[i.type as keyof typeof INCIDENT];
+                    const base = INCIDENT[i.type as keyof typeof INCIDENT];
+                    // В группе 7 CUSUM смотрит на невязку двух источников: это расхождение, а не деградация одного датчика
+                    const info = group === 7 && i.type === 'quality' && base ? {...base, text: 'Расхождение источников · гр. 7'} : base;
                     return (
                         <Flex key={i.id ?? k} gap={2} alignItems="center" wrap>
                             <Text color={i.end === null ? 'danger' : 'positive'}>{i.end === null ? '●' : '✓'}</Text>

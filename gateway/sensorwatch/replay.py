@@ -8,7 +8,7 @@ from statistics import fmean
 
 from .config import DEFAULT_CONFIG, DEFAULT_PROFILES, SCORED_TYPES, MonitorConfig, Profile
 from .monitor import Monitor
-from .scenarios import generate
+from .scenarios import generate, scenario_profiles
 
 
 class ThresholdBaseline:
@@ -42,8 +42,8 @@ def replay(scenario: str = "combined", seed: int = 42, config: MonitorConfig | N
            profiles: dict[str, Profile] | None = None, keep_messages: bool = True) -> dict:
     """Прогон по времени доставки: на шаге now монитор видит только пришедшее к now."""
     cfg = config or DEFAULT_CONFIG
-    profs = dict(DEFAULT_PROFILES if profiles is None else profiles)
     data = generate(scenario, seed)
+    profs = dict(profiles if profiles is not None else scenario_profiles(scenario) or DEFAULT_PROFILES)
     monitor = Monitor(cfg, profs)
     baseline = ThresholdBaseline(cfg, profs)
     frames: list[dict] = []

@@ -62,6 +62,13 @@ export function narrate({frames, events, recent, h, staleAfter, started}: Input)
         if (ev.kind === 'mode')
             return {tone: 'info', group: 4, text: `Смена режима: ${ev.text.split(';')[0]}. У нового режима своя норма - это не ошибка, тревоги нет.`};
         if (ev.kind === 'calibrated') return {tone: 'info', group: 4, text: `Эталон режима откалиброван: ${ev.text.replace(/^Эталон режима /, '')}.`};
+        if (ev.kind === 'shape')
+            return {
+                tone: 'danger',
+                group: 2,
+                text: `Форма ухода уточнена${ev.text.replace(/^Тот же инцидент/, '')}. Ступенька - случай 2, дрейф - случаи 3-5; детектор один и тот же.`,
+            };
+        if (ev.kind === 'future') return {tone: 'warning', group: 3, text: ev.text};
         if (ev.kind === 'unknown_mode') return {tone: 'info', group: 4, text: 'Новый режим без эталона: монитор копит отсчёты, чтобы узнать его норму.'};
     }
 
@@ -110,7 +117,7 @@ export const groupOfIncident = (t: string) => GROUP_OF_INCIDENT[t as IncidentTyp
 // Итог в конце проигрывания: что монитор сделал за весь сценарий (вместо фразы о текущем моменте)
 const WHAT: Record<string, string> = {
     quality: 'деградацию',
-    availability: 'пропуск данных',
+    availability: 'потерю свежих данных',
     stuck: 'залипание',
     noise: 'рост шума',
     rate: 'падение частоты',
@@ -123,7 +130,8 @@ export function summarize(run: RunResult): Narration {
         const lb = run.truth.find((l) => l.type === i.type && i.start >= l.start - 1 && i.start <= l.end + 30);
         const delay = lb ? `, через ${fmtDuration(i.start - lb.start)} после начала ошибки` : '';
         const end = i.end === null ? 'и она ещё открыта' : `закрыл сам в ${t(i.end)}, когда всё вернулось в норму`;
-        return `поймал ${WHAT[i.type] ?? i.type} в ${t(i.start)}${delay}, ${end}`;
+        const what = i.type === 'quality' && i.shape ? (i.shape === 'step' ? 'ступеньку' : 'дрейф') : WHAT[i.type] ?? i.type;
+        return `поймал ${what} в ${t(i.start)}${delay}, ${end}`;
     });
     const m = run.metrics.monitor;
     const ann = run.annotations ?? [];

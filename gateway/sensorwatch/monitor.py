@@ -96,6 +96,10 @@ class Monitor:
         self.dt_recent: deque[float] = deque(maxlen=self.cfg.rate_window)
         self.rate_ratio: float | None = None
         self.calib: dict[str, list[float]] = {}   # отсчёты неизвестных режимов для автокалибровки
+        self.agg_hist: deque[tuple[float, float]] = deque(maxlen=16)
+        self.shape_due = 0                        # через сколько окон уточнить форму ухода   # (время, медиана окна) для формы ухода
+        self.future_count = 0                     # отброшено отсчётов «из будущего»
+        self.last_future_log = -math.inf
 
     # ------------------------------------------------------------------ журнал
     def _log(self, lst: list, item: dict) -> None:
@@ -203,6 +207,16 @@ class Monitor:
         if self.started_at is None:
             self.started_at = now
         for m in incoming:
+            # Время события позже времени приёма: часы датчика спешат (случай 11) - отсчёт не берём
+            arrived = m.get("received_at", now)
+            if cfg.max_future and m["event_time"] > arrived + cfg.max_future:
+                self.future_count += 1
+                if now - self.last_future_log >= cfg.mode_log_every:
+                    self.last_future_log = now
+                    self._event({"time": now, "kind": "future", "type": "info",
+                                 "text": f"Время события на {m['event_time'] - arrived:.1f} с позже приёма: "
+                                         f"часы датчика спешат, отсчёт отброшен (всего {self.future_count})"})
+                continue
             if self._duplicate(m, now):
                 continue
             self.last_receipt = now
@@ -277,6 +291,7 @@ class Monitor:
             self.aggregate = profile.mean - z_median * profile.sigma
             self.aggregate_time = (b + 1) * cfg.bucket - 1
             self.z = z_median / median_sd(len(values)) / scale
+            self.agg_hist.append((self.aggregate_time, self.aggregate))
             self._cusum_step(now)
         self.last_bucket = max(self.last_bucket, finalized)
 
@@ -374,14 +389,52 @@ class Monitor:
                 self.side = side
                 self.quality_incident = self.open(
                     "quality", now, f"{text}: CUSUM ≥ {cfg.h:g} и подтверждение по последним окнам", side=side)
+                self.shape_due = 6          # форму видно, когда после начала накопится ещё несколько окон
+        elif self.shape_due:
+            self.shape_due -= 1
+            if not self.shape_due:
+                shape, detail, slope = self._shape()
+                if shape:
+                    self.quality_incident.update(shape=shape, slope=slope)
+                    self._event({"time": now, "kind": "shape", "type": "quality", "text": f"Тот же инцидент{detail}"})
         if self.quality_incident and len(self.recent) == 5 and all(abs(v) < cfg.recover_z for v in self.recent):
             self.close(self.quality_incident, now, "Пять последовательных окон вернулись в нормальный диапазон")
             self.quality_incident = None
+            self.shape_due = 0
             self.side = None
             self.s = self.s_dn = self.s_up = 0.0
             self.recent = []
             self.aggregate = None
             self.aggregate_time = None
+
+    def _shape(self) -> tuple[str | None, str, float | None]:
+        """Форма ухода по медианам окон: ступенька (сдвиг за одно окно) или дрейф (наклон).
+
+        Тот же детектор группы 2, только подпись: ступенька - случай 2, дрейф - случаи 3-5.
+        """
+        prof = self.profiles.get(self.mode) if self.mode else None
+        pts = list(self.agg_hist)
+        if prof is None or len(pts) < 4:
+            return None, "", None
+        shift = pts[-1][1] - prof.mean
+        ts = [p[0] for p in pts]
+        vs = [p[1] for p in pts]
+        sse = lambda xs: sum((x - sum(xs) / len(xs)) ** 2 for x in xs)  # noqa: E731
+        # Дрейф: прямая по медианам окон; ступенька: два ровных куска с одним разрывом
+        tm, vm = sum(ts) / len(ts), sum(vs) / len(vs)
+        den = sum((t - tm) ** 2 for t in ts)
+        slope = sum((t - tm) * (v - vm) for t, v in zip(ts, vs)) / den if den else 0.0
+        sse_line = sum((v - vm - slope * (t - tm)) ** 2 for t, v in zip(ts, vs))
+        i = min(range(2, len(vs) - 1), key=lambda k: sse(vs[:k]) + sse(vs[k:]))
+        left, rt, rv = vs[:i], ts[i:], vs[i:]
+        # После разрыва: ровно - ступенька; продолжает уходить - дрейф
+        rtm, rvm = sum(rt) / len(rt), sum(rv) / len(rv)
+        rden = sum((t - rtm) ** 2 for t in rt)
+        r_slope = sum((t - rtm) * (v - rvm) for t, v in zip(rt, rv)) / rden if rden else 0.0
+        jump = abs(rvm - sum(left) / len(left))
+        if len(rv) >= 2 and abs(r_slope) * (rt[-1] - rt[0] + 3) < 0.4 * jump and sse(left) + sse(rv) < 0.6 * sse_line:
+            return "step", f": форма - ступенька (случай 2), сдвиг {shift:+.3g}", slope
+        return "drift", f": форма - дрейф (случаи 3-5), наклон {slope:+.3g} ед/с, уход {shift:+.3g}", slope
 
     # ------------------------------------------------------------------ диагностика
     def _diagnose_window(self, raw: list[float], profile: Profile, now: float) -> None:
@@ -396,8 +449,8 @@ class Monitor:
         else:
             self.stuck_run = 0
             self.unstuck_run += 1
-            if self.diag_incidents["stuck"] and self.unstuck_run >= 2:
-                self.close(self.diag_incidents["stuck"], now, "Значение снова меняется")
+            if self.diag_incidents["stuck"] and self.unstuck_run >= max(2, cfg.stuck_windows):
+                self.close(self.diag_incidents["stuck"], now, f"Значение снова меняется {self.unstuck_run} окон подряд")
                 self.diag_incidents["stuck"] = None
         # Рост шума: медиана отношения σ_окна/σ_эталона за последние окна.
         # σ_окна - по разностям соседних отсчётов (RMS/√2): плавный тренд (износ, дрейф) её почти не меняет

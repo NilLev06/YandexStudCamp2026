@@ -166,7 +166,7 @@ export interface RunResult {
     truth: Label[];
     annotations: Annotation[];
     frames: Frame[];
-    incidents: {type: IncidentType; start: number; end: number | null; reason: string; side?: string}[];
+    incidents: {type: IncidentType; start: number; end: number | null; reason: string; side?: string; shape?: 'step' | 'drift'}[];
     events: MonitorEvent[];
     baseline: BaselineIncident[];
     config: Record<string, number | string | boolean>;

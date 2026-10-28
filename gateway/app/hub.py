@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from sensorwatch import (DEFAULT_PROFILES, Monitor, MonitorConfig, Profile, SCENARIOS, ThresholdBaseline,
-                         generate, score_incidents)
+                         generate, scenario_profiles, score_incidents)
 
 from .settings import settings
 
@@ -164,8 +164,9 @@ class Hub:
         data = generate(scenario, seed, sensor_id=sid)
         rt = self.create_sensor(
             sid, kind="simulation", source=f"simulation:{scenario}", clock=SimClock(speed),
-            config=config or MonitorConfig(), profiles=dict(DEFAULT_PROFILES),
-            name=f"{SCENARIOS[scenario]['name']} (seed {seed})", unit="score",
+            config=config or MonitorConfig(), profiles=dict(scenario_profiles(scenario) or DEFAULT_PROFILES),
+            name=f"{SCENARIOS[scenario]['name']} (seed {seed})",
+            unit={"pair": "°C (y2 - y1)", "gain": "изм./зад."}.get(scenario, "score"),
             description=SCENARIOS[scenario]["description"], tags=["демо", scenario])
         rt.feed = deque(data["messages"])
         rt.labels = data["truth"]                   # разметка - только для оценщика

@@ -3,11 +3,15 @@
 Первые пять сценариев - побитовый порт generate() из demo/engine.js
 (тот же генератор mulberry32, тот же порядок вызовов): seed 42 даёт те же числа.
 Сценарии stuck / noise / rate - наше расширение под ошибки из «математической базы».
+Сценарии случаев (step, bias, latency, saturation, quant, periodic, pair, gain) показывают,
+что каждый из 14 случаев документа ловит детектор своей группы - отдельные детекторы не нужны.
 """
 from __future__ import annotations
 
 import math
 from typing import Callable
+
+from .config import Profile
 
 M32 = 0xFFFFFFFF
 
@@ -50,7 +54,31 @@ SCENARIOS: dict[str, dict] = {
               "description": "Среднее в норме, разброс вырос в 4 раза (вибрация, плохой контакт)."},
     "rate": {"name": "Отсчёты реже", "duration": 200, "extended": True,
              "description": "Датчик присылает данные в 3 раза реже: окна пустеют, оценка качества теряет опору."},
+    # --- случаи документа внутри групп: тот же детектор группы, другой вид ошибки ---
+    "step": {"name": "Ступенька", "duration": 200, "extended": True, "group": 2, "cases": [2],
+             "description": "Показания резко сдвигаются на 8 и держатся со сдвигом (удар, переподключение)."},
+    "bias": {"name": "Дрейф нуля", "duration": 200, "extended": True, "group": 2, "cases": [4],
+             "description": "Ноль датчика случайно блуждает и уходит за паспортный бюджет, затем перекалибровка."},
+    "latency": {"name": "Растущая задержка", "duration": 200, "extended": True, "group": 3, "cases": [11],
+                "description": "Отсчёты приходят всё позже и не по порядку: время события отстаёт от времени приёма."},
+    "saturation": {"name": "Насыщение", "duration": 200, "extended": True, "group": 5, "cases": [8],
+                   "description": "Величина выше диапазона датчика: показания упираются в потолок 100."},
+    "quant": {"name": "Грубое квантование", "duration": 200, "extended": True, "group": 5, "cases": [12],
+              "description": "Разрешение упало до шага 6: сигнал превращается в лесенку и почти не меняется."},
+    "periodic": {"name": "Периодическая помеха", "duration": 200, "extended": True, "group": 6, "cases": [13],
+                 "description": "К сигналу добавилась синусоида с периодом 4 с (вращение, наводка)."},
+    "pair": {"name": "Расхождение двух датчиков", "duration": 200, "extended": True, "group": 7, "cases": [14],
+             "description": "Два термометра в одной точке; монитор смотрит на невязку y2 - y1, второй уходит вниз."},
+    "gain": {"name": "Ошибка масштаба", "duration": 200, "extended": True, "group": 7, "cases": [5],
+             "description": "Мотор даёт 85 % заданных оборотов: монитор смотрит на отношение измерено/задано."},
 }
+
+# Сценарии случаев, у которых монитор смотрит не на сам сигнал, а на невязку с ожидаемым (адаптер)
+CASE_PROFILES: dict[str, dict[str, Profile]] = {
+    "pair": {"A": Profile(mean=0.0, sigma=1.414, source="passport")},     # y2 - y1, σ = √2·σ_датчика
+    "gain": {"A": Profile(mean=1.0, sigma=0.03, source="passport")},      # y / ŷ
+}
+CASE_SCENARIOS = ("step", "bias", "latency", "saturation", "quant", "periodic", "pair", "gain")
 
 BASE_SCENARIOS = ("combined", "spike", "drift", "gap", "mode")
 MEAN = {"A": 95.0, "B": 80.0}
@@ -70,7 +98,14 @@ def generate(scenario: str = "combined", seed: int = 42, sensor_id: str = "camer
         raise KeyError(f"Неизвестный сценарий: {scenario}")
     if scenario in BASE_SCENARIOS:
         return _generate_base(scenario, seed, sensor_id)
+    if scenario in CASE_SCENARIOS:
+        return _generate_case(scenario, seed, sensor_id)
     return _generate_extended(scenario, seed, sensor_id)
+
+
+def scenario_profiles(scenario: str) -> dict[str, Profile] | None:
+    """Паспорт датчика сценария (None - эталоны демо A/B)."""
+    return CASE_PROFILES.get(scenario)
 
 
 def _generate_base(scenario: str, seed: int, sensor_id: str) -> dict:
@@ -152,5 +187,69 @@ def _generate_extended(scenario: str, seed: int, sensor_id: str) -> dict:
             continue                             # приходит только каждый третий отсчёт
         messages.append({"id": t, "sensor_id": sensor_id, "event_time": t, "received_at": t,
                          "value": _fmt3(value), "mode": "A", "quality_flags": "valid"})
+    return {"scenario": scenario, "seed": seed, "duration": duration,
+            "messages": messages, "truth": truth, "annotations": annotations}
+
+
+def _generate_case(scenario: str, seed: int, sensor_id: str) -> dict:
+    """Сценарии случаев из документа. Разметка - тип инцидента, которым случай должна поймать его группа."""
+    random = mulberry32(seed ^ 0xCA5E)
+
+    def normal() -> float:
+        u = max(random(), 1e-9)
+        return math.sqrt(-2 * math.log(u)) * math.cos(2 * math.pi * random())
+
+    duration = SCENARIOS[scenario]["duration"]
+    start, end = 70, 150
+    messages: list[dict] = []
+    truth_type, label = "quality", SCENARIOS[scenario]["name"]
+    bias = 0.0
+    phase = random() * 2 * math.pi
+    for t in range(duration + 1):
+        x = 95.0 + 1.5 * normal()                # исправный датчик: норма 95, σ = 1.5
+        received = float(t)
+        inside = start <= t < end
+        if scenario == "step" and inside:
+            x -= 8.0                             # случай 2: b_k = B при k ≥ k0
+        elif scenario == "bias":
+            if inside:
+                bias += -0.08 + 0.1 * normal()   # случай 4: b_k = b_(k-1) + w_k, у w есть снос
+            elif t >= end:
+                bias = 0.0                       # перекалибровка нуля в опорном состоянии
+            x += bias
+        elif scenario == "latency" and inside:
+            # случай 11: задержка τ - t растёт до 10 с, с разбросом - отсчёты приходят не по порядку
+            received = t + min(10.0, (t - start) * 0.15) + random()
+        elif scenario == "saturation":
+            if inside:
+                x += 12.0                        # величина выше диапазона
+            x = min(x, 100.0)                    # случай 8: y = clamp(x, x_min, x_max)
+        elif scenario == "quant" and inside:
+            x = 6.0 * round(x / 6.0)             # случай 12: y = q·round(x/q), q = 6 ≫ σ
+        elif scenario == "periodic" and inside:
+            x += 6.0 * math.sin(2 * math.pi * t / 4 + phase)   # случай 13: A·sin(2πft), f = 0.25 Гц
+        elif scenario == "pair":
+            temp = 20.0 + 5.0 * math.sin(2 * math.pi * t / 200)   # настоящая температура меняется
+            y1 = temp + normal()
+            y2 = temp + normal()
+            if inside:
+                y2 -= min(8.0, (t - start) * 0.15)     # второй термометр уходит вниз
+            x = y2 - y1                          # случай 14: невязка r = y2 - h(y1)
+        elif scenario == "gain":
+            cmd = 50.0 + 30.0 * math.sin(2 * math.pi * t / 60)    # заданные обороты меняются
+            eps = -0.15 if inside else 0.0       # случай 5: y = (1 + ε)·ŷ
+            x = (cmd * (1 + eps) + 0.8 * normal()) / cmd
+        messages.append({"id": t, "sensor_id": sensor_id, "event_time": t, "received_at": received,
+                         "value": _fmt3(x), "mode": "A", "quality_flags": "valid"})
+    if scenario == "latency":
+        truth_type = "availability"
+        start = 110                              # задержка превысила порог свежести 6 с
+        messages.sort(key=lambda m: (m["received_at"], m["event_time"]))
+    if scenario in ("saturation", "quant"):
+        truth_type = "stuck"
+    if scenario == "periodic":
+        truth_type = "noise"
+    truth = [{"start": start, "end": end, "type": truth_type, "label": label}]
+    annotations = [{"start": start, "end": end, "label": label, "kind": truth_type}]
     return {"scenario": scenario, "seed": seed, "duration": duration,
             "messages": messages, "truth": truth, "annotations": annotations}

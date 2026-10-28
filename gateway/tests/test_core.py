@@ -114,7 +114,11 @@ def test_parity_with_engine_js():
         r = replay(sc, int(seed))
         assert [[m["event_time"], m["received_at"], m["value"], m["mode"]] for m in r["messages"]] == j["messages"]
         assert [[i["type"], i["start"], i["end"]] for i in r["incidents"]] == j["incidents"]
-        assert [[e["time"], e["kind"], e["type"]] for e in r["events"]] == j["events"]
+        # Наши дополнительные пояснения (форма ухода и т.п.) - сверх решений engine.js, их не сравниваем
+        engine_kinds = {"open", "close", "mode", "unknown_mode"}
+        assert [[e["time"], e["kind"], e["type"]] for e in r["events"] if e["kind"] in engine_kinds] == \
+               [e for e in j["events"] if e[1] in engine_kinds]
+        assert len(j["events"]) == len([e for e in j["events"] if e[1] in engine_kinds])
         assert [f["s"] for f in r["frames"]] == j["s"]
 
 
@@ -125,3 +129,30 @@ def test_waiting_for_first_message_option():
         quiet.tick(now, [])
         loud.tick(now, [])
     assert not quiet.incidents and loud.incidents[0]["type"] == "availability"
+
+
+CASES = {"step": "quality", "bias": "quality", "latency": "availability", "saturation": "stuck",
+         "quant": "stuck", "periodic": "noise", "pair": "quality", "gain": "quality"}
+
+
+@pytest.mark.parametrize("scenario", sorted(CASES))
+def test_each_case_is_caught_by_its_group_detector(scenario):
+    """14 случаев документа - 7 групп: каждый случай ловит детектор своей группы, без отдельного детектора."""
+    b = benchmark([scenario], list(range(1, 51)))["total"]["monitor"]
+    assert b["detected"] >= 49 and b["false_alarms"] <= 1
+    r = replay(scenario, 42)
+    assert {i["type"] for i in r["incidents"]} == {CASES[scenario]}
+
+
+def test_shape_step_vs_drift():
+    # Одна группа 2, но подпись разная: ступенька (случай 2) или дрейф (случаи 3-5)
+    for seed in range(1, 21):
+        assert replay("step", seed)["incidents"][0]["shape"] == "step"
+        assert replay("drift", seed)["incidents"][0]["shape"] == "drift"
+
+
+def test_future_event_time_is_rejected():
+    mon = Monitor(profiles={"A": Profile(95, 1.5)})
+    f = mon.tick(10, [{"id": 1, "event_time": 30, "received_at": 10, "value": 95.0, "mode": "A"}])
+    assert f["accepted"] == 0 and mon.future_count == 1
+    assert mon.events[-1]["kind"] == "future"
