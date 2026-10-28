@@ -1,5 +1,6 @@
 // Живая подсказка: одна фраза о том, что сейчас происходит и почему монитор так решил
-import type {Frame, Message, MonitorEvent} from '../api/types';
+import type {Frame, Message, MonitorEvent, RunResult} from '../api/types';
+import {fmtDuration, fmtTime} from './format';
 import {GROUP_OF_INCIDENT} from '../groups';
 import type {IncidentType} from '../api/types';
 
@@ -105,3 +106,33 @@ export function narrate({frames, events, recent, h, staleAfter, started}: Input)
 }
 
 export const groupOfIncident = (t: string) => GROUP_OF_INCIDENT[t as IncidentType];
+
+// Итог в конце проигрывания: что монитор сделал за весь сценарий (вместо фразы о текущем моменте)
+const WHAT: Record<string, string> = {
+    quality: 'деградацию',
+    availability: 'пропуск данных',
+    stuck: 'залипание',
+    noise: 'рост шума',
+    rate: 'падение частоты',
+    flags: 'невалидные флаги',
+};
+
+export function summarize(run: RunResult): Narration {
+    const t = (s: number) => fmtTime(s, 'sim');
+    const parts = run.incidents.map((i) => {
+        const lb = run.truth.find((l) => l.type === i.type && i.start >= l.start - 1 && i.start <= l.end + 30);
+        const delay = lb ? `, через ${fmtDuration(i.start - lb.start)} после начала ошибки` : '';
+        const end = i.end === null ? 'и она ещё открыта' : `закрыл сам в ${t(i.end)}, когда всё вернулось в норму`;
+        return `поймал ${WHAT[i.type] ?? i.type} в ${t(i.start)}${delay}, ${end}`;
+    });
+    const m = run.metrics.monitor;
+    const ann = run.annotations ?? [];
+    const spike = ann.find((a) => a.kind === 'spike');
+    const mode = ann.find((a) => a.kind === 'mode');
+    const extra =
+        (spike ? ` Выброс в ${t(spike.start)} проигнорирован.` : '') +
+        (mode ? ` Смену режима в ${t(mode.start)} принял без тревоги - у режима своя норма.` : '') +
+        (m.false_alarms ? ` Ложных тревог: ${m.false_alarms}.` : ' Ложных тревог нет.');
+    if (!parts.length) return {tone: 'success', text: `Сценарий окончен. Тревог не было.${extra}`};
+    return {tone: m.false_alarms ? 'warning' : 'success', text: `Сценарий окончен. Монитор ${parts.join('; ')}.${extra}`};
+}

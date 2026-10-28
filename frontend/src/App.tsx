@@ -156,6 +156,9 @@ function ExpertLayout({theme, onTheme}: ThemeProps) {
             )}
             renderContent={() => (
                 <main className="sw-content">
+                    <div className="sw-expert-bar">
+                        <ModeSwitch value="expert" />
+                    </div>
                     <ConnectionBanner />
                     <Routes>
                         <Route path={EXPERT} element={<OverviewPage />} />

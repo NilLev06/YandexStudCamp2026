@@ -296,3 +296,18 @@ body,
 .sw-bar-fill_bad {
     background: var(--g-color-base-danger-heavy);
 }
+
+/* переключатель режимов и в эксперте - в правом верхнем углу, как в простом */
+.sw-expert-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 32px 0;
+    pointer-events: none;
+}
+
+.sw-expert-bar > * {
+    pointer-events: auto;
+}

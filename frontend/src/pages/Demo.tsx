@@ -11,7 +11,7 @@ import {SimpleChart} from '../components/SimpleChart';
 import {DOC_URL, GROUPS, groupById} from '../groups';
 import type {Group} from '../groups';
 import {INCIDENT, fmtDuration, fmtNum, fmtTime} from '../utils/format';
-import {narrate} from '../utils/narrate';
+import {narrate, summarize} from '../utils/narrate';
 import type {Tone} from '../utils/narrate';
 
 type Pick = number | 'all';
@@ -173,7 +173,10 @@ export function DemoPage() {
     const live = useLiveSensor(isLive && droneOnline ? channel : null);
     const view = isLive ? live.view : replay.view;
 
-    const narration = view
+    const finished = !isLive && !!replay.run && replay.t >= replay.run.duration;
+    const narration = finished && replay.run
+        ? summarize(replay.run)
+        : view
         ? narrate({frames: view.frames, events: view.events, recent: view.recent, h: view.h, staleAfter: view.staleAfter, started: true})
         : narrate({frames: [], events: [], recent: [], h: 10, staleAfter: 6, started: false});
     const focusGroup = groupById(narration.group) ?? group;
