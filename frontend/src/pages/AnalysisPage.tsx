@@ -25,7 +25,6 @@ export function AnalysisPage() {
     const [result, setResult] = useState<SimulationAnalysis | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showTruth, setShowTruth] = useState(true);
     const [showMedian, setShowMedian] = useState(false);
     const [selectedCases, setSelectedCases] = useState<string[]>([]);
     const [range, setRange] = useState<[number | null, number | null]>([1, 10]);
@@ -132,13 +131,11 @@ export function AnalysisPage() {
             </Panel>}
             <LinkedChartsProvider resetKey={`${ready.case.id}:${ready.assessment.seed}`}>
                 <Panel title={single ? 'Измерения датчика' : `Измерения ${pair?.sensor_count ?? 2} датчиков`} extra={<Flex gap={2} wrap>
-                    <Checkbox checked={showTruth} onUpdate={setShowTruth}>Разметка генератора</Checkbox>
                     {single && <Checkbox checked={showMedian} onUpdate={setShowMedian}>Медиана окна</Checkbox>}
                 </Flex>}>
-                    {single && <SingleCharts replay={single} position={single.duration} showTruth={showTruth} showMedian={showMedian} />}
-                    {pair && <PairCharts replay={pair} position={pair.duration} showTruth={showTruth} />}
-                    <Text variant="caption-2" color="secondary">Красный фон — тревоги, жёлтый — заданное нарушение.
-                        Разметка используется только для оценки. После подтверждения восстановления оба нормальных окна не закрашиваются.</Text>
+                    {single && <SingleCharts replay={single} position={single.duration} showMedian={showMedian} />}
+                    {pair && <PairCharts replay={pair} position={pair.duration} />}
+                    <Text variant="caption-2" color="secondary">Красный фон — периоды тревог. После подтверждения восстановления оба нормальных окна не закрашиваются.</Text>
                 </Panel>
                 <Panel title={single ? 'Накопление отклонений (CUSUM)' : 'Расхождение и пороги'}>
                     {single && <div className="replay-chart"><CusumChart frames={single.frames} clock="virtual" h={single.config.cusum_h} suspect={single.config.cusum_suspect} height={220} /></div>}

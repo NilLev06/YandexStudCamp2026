@@ -1,5 +1,5 @@
 import {ArrowLeft, Stop, TrashBin} from '@gravity-ui/icons';
-import {Alert, Button, Checkbox, DefinitionList, Flex, Icon, Label, Loader, Progress, Table, Text, useToaster} from '@gravity-ui/uikit';
+import {Alert, Button, DefinitionList, Flex, Icon, Label, Loader, Progress, Table, Text, useToaster} from '@gravity-ui/uikit';
 import {useCallback, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 
@@ -33,7 +33,6 @@ export function SensorPage() {
     const toaster = useToaster();
     const [state, setState] = useState<State | null>(null);
     const [error, setError] = useState<Error | null>(null);
-    const [showTruth, setShowTruth] = useState(true);
 
     const load = useCallback(async () => {
         try {
@@ -157,22 +156,12 @@ export function SensorPage() {
                     </Panel>
                 )}
             </div>
-            <Panel
-                title="Измерения"
-                extra={
-                    detail.truth.length > 0 && (
-                        <Checkbox checked={showTruth} onUpdate={setShowTruth}>
-                            Разметка сценария
-                        </Checkbox>
-                    )
-                }
-            >
+            <Panel title="Измерения">
                 <MeasurementsChart
                     measurements={measurements}
                     clock={clock}
                     profiles={detail.profiles}
                     incidents={incidents}
-                    truth={showTruth ? detail.truth : []}
                 />
             </Panel>
             <Panel title="Накопление отклонений (CUSUM)">

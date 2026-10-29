@@ -38,9 +38,9 @@
     <div class="content">
       <section class="panel chart-panel">
         <div class="panel-head"><h2>camera-01 <span style="font-weight:400;color:var(--muted)">/ качество восприятия</span></h2></div>
-        <div class="legend"><span><i class="key" style="background:var(--blue)"></i>Измерения</span><span><i class="key" style="background:var(--green)"></i>Норма режима</span><label><input id="show-baseline" type="checkbox" checked>Пороговый детектор</label><label><input id="show-truth" type="checkbox" checked>Разметка сценария</label></div>
+        <div class="legend"><span><i class="key" style="background:var(--blue)"></i>Измерения</span><span><i class="key" style="background:var(--green)"></i>Норма режима</span><label><input id="show-baseline" type="checkbox" checked>Пороговый детектор</label></div>
         <div id="quality-chart" class="chart"><svg id="quality-svg" role="img" aria-label="Качество измерений во времени"></svg><div id="tooltip" class="tooltip"></div></div>
-        <div class="chart-caption">Разметка фоном — только для показа и оценки. Вертикальная красная линия — момент тревоги монитора.</div>
+        <div class="chart-caption">Вертикальная красная линия — момент тревоги монитора.</div>
         <div class="rule"></div>
         <div class="small-title"><strong>Накопленное свидетельство · CUSUM</strong><span id="cusum-value">0,0 / 10</span></div>
         <div class="chart"><svg id="cusum-svg" role="img" aria-label="Накопленная сумма отклонений и порог тревоги"></svg></div>
@@ -142,12 +142,6 @@
     svg.append(node('text',{x:left,y:13,class:'axis-title'},'Качество, score ↑'));
     const clipId='quality-plot-clip';const defs=node('defs');const clip=node('clipPath',{id:clipId});clip.append(node('rect',{x:left,y:top,width:w-left-right,height:bottom-top}));defs.append(clip);svg.append(defs);
     const plot=node('g',{'clip-path':'url(#'+clipId+')'});
-    if($('show-truth').checked)for(const a of result.annotations){
-      if(a.start>now)continue;
-      const fill={quality:'#f7e1dc',availability:'#e5e9ef',spike:'#fff0c5',mode:'#e7edf9',batch:'#e5e9ef'}[a.kind];
-      plot.append(node('rect',{x:x(a.start),y:top,width:Math.max(2,x(Math.min(a.end,now))-x(a.start)),height:bottom-top,fill,opacity:.8}));
-      if(a.kind!=='batch'&&a.kind!=='spike'){const text=node('text',{x:Math.min(x(a.start)+5,w-120),y:top+14,fill:'#63718a'},a.label);if(!narrow)plot.append(text);}
-    }
     for(const v of [40,60,80,100]){svg.append(node('line',{x1:left,x2:w-right,y1:y(v),y2:y(v),stroke:'#e6eaf1'}));svg.append(node('text',{x:left-7,y:y(v)+4,'text-anchor':'end'},String(v)));}
     const ticks=narrow?3:6;for(let i=0;i<=ticks;i++){const t=Math.round(result.duration*i/ticks);svg.append(node('text',{x:x(t),y:bottom+17,'text-anchor':i===0?'start':i===ticks?'end':'middle'},fmt(t)));}
     svg.append(node('text',{x:w-right,y:h-1,'text-anchor':'end',class:'axis-title'},'Время измерения, мин:с'));
@@ -187,7 +181,7 @@
   $('seed').onchange=()=>{if(seedValue()!==null)return;$('seed').value=result.seed;seedError('Seed — целое число '+seedRange+'; оставлен seed '+result.seed+'.',false);};
   $('seek').oninput=()=>seek(Number($('seek').value));
   $('restart').onclick=()=>seek(0);$('play').onclick=()=>{if(now>=result.duration)now=0;playing=!playing;carry=0;lastTick=performance.now();render();};
-  $('show-baseline').onchange=drawCharts;$('show-truth').onchange=drawCharts;
+  $('show-baseline').onchange=drawCharts;
   $('export').onclick=()=>{
     const data={config:CONFIG,profiles:PROFILES,scenario:result.scenario,seed:result.seed,metrics:evaluate(result),messages:result.messages,truth:result.truth,incidents:result.incidents,events:result.events,baseline:result.baseline};
     const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='sensor-watch-'+result.scenario+'-seed-'+result.seed+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);

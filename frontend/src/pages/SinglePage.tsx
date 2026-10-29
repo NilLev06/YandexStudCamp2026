@@ -29,7 +29,6 @@ export function SinglePage() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showMedian, setShowMedian] = useState(false);
-    const [showTruth, setShowTruth] = useState(false);
     const requestId = useRef(0);
     const load = useCallback(async (scenario: SingleScenario, selectedSeed: number) => {
         const id = ++requestId.current;
@@ -100,12 +99,10 @@ export function SinglePage() {
             </div>
             <Panel title="Измерения датчика" extra={<Flex gap={2} wrap>
                 <Checkbox checked={showMedian} onUpdate={setShowMedian}>Медиана окна</Checkbox>
-                <Checkbox checked={showTruth} onUpdate={setShowTruth}>Разметка генератора</Checkbox>
             </Flex>}>
-                <SingleCharts replay={result} position={position} showMedian={showMedian} showTruth={showTruth} />
+                <SingleCharts replay={result} position={position} showMedian={showMedian} />
                 <Text variant="caption-2" color="secondary">Синяя линия включает непригодные и поздние сообщения. Они не участвуют в оценке уровня и разброса.
-                    Красный фон — периоды тревог. После подтверждения восстановления оба нормальных окна не закрашиваются.
-                    Жёлтая разметка служит только для показа и не передаётся монитору.</Text>
+                    Красный фон — периоды тревог. После подтверждения восстановления оба нормальных окна не закрашиваются.</Text>
             </Panel>
             <Panel title="Накопление отклонений (CUSUM)">
                 <div className="replay-chart">
