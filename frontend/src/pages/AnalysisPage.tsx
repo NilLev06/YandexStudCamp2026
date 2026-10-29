@@ -20,6 +20,7 @@ export function AnalysisPage() {
     const [query] = useSearchParams();
     const catalog = useAsync(api.analysisCases, []);
     const [caseId, setCaseId] = useState(query.get('case') ?? 'single:combined');
+    const recommendations = useAsync(() => api.analysisExamples(caseId).then((items) => ({caseId, items})), [caseId]);
     const [seed, setSeed] = useState<number | null>(query.has('seed') ? Number(query.get('seed')) : 42);
     const [result, setResult] = useState<SimulationAnalysis | null>(null);
     const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export function AnalysisPage() {
         return () => {clearTimeout(timer); requestId.current++;};
     }, [caseId, seed, meta.seed]);
 
+    const exampleList = recommendations.data?.caseId === caseId ? recommendations.data.items : undefined;
     const ready = result?.case.id === caseId && result.assessment.seed === seed ? result : null;
     const options = (catalog.data ?? []).map((c) => ({value: c.id, content: c.name}));
     const chosen = catalog.data?.find((c) => c.id === caseId);
@@ -90,12 +92,17 @@ export function AnalysisPage() {
                 {loading && <Loader size="s" />}
             </Flex>
             <Flex gap={1} wrap alignItems="center">
-                <Text color="secondary">Примеры:</Text>
-                {[42, 1, 7].map((value) => <Button key={value} size="s" selected={seed === value} aria-pressed={seed === value}
-                    view={seed === value ? 'outlined-info' : 'outlined'} onClick={() => setSeed(value)}>
-                    <span style={{fontWeight: seed === value ? 700 : 400}}>{value}{value === 42 ? ' Эталон' : ''}</span>
+                <Text color="secondary">Рекомендуемые seed:</Text>
+                {(exampleList ?? [{seed: 42, label: 'Эталон', note: 'Опорный пример с seed 42'}]).map((example) => <Button key={example.seed} size="s" selected={seed === example.seed} aria-pressed={seed === example.seed}
+                    view={seed === example.seed ? 'outlined-info' : 'outlined'} title={example.note} onClick={() => setSeed(example.seed)}>
+                    <span style={{fontWeight: seed === example.seed ? 700 : 400}}>{example.seed} {example.label}</span>
                 </Button>)}
+                {recommendations.loading && <Loader size="s" />}
             </Flex>
+            {exampleList?.find((example) => example.seed === seed) && <Text variant="caption-2" color="secondary">
+                {exampleList?.find((example) => example.seed === seed)?.note}
+            </Text>}
+            <Text variant="caption-2" color="secondary">Seed задаёт случайный шум. Одинаковый seed воспроизводит одинаковую запись; тип и время нарушения не меняются.</Text>
             <Text color="secondary">{chosen?.expectation} Выбор сценария или seed сразу загружает результат.</Text>
             <Text color="secondary">Время — от начала симуляции, мин:с. Окно 3 с; открытие по одному плохому окну,
                 восстановление по двум нормальным. Для уровня дополнительно нужен порог CUSUM 10.</Text>
@@ -142,10 +149,10 @@ export function AnalysisPage() {
             </LinkedChartsProvider>
             <Panel title="Тревоги и причины">
                 <Table data={incidents} width="max" emptyMessage="Тревог в этом прогоне нет" columns={[
+                    {id: 'start', name: 'Открыта, мин:с', template: (i) => formatTime(i.start, 'virtual')},
+                    {id: 'end', name: 'Снята, мин:с', template: (i) => i.end === null ? <Label theme="danger">Не снята</Label> : formatTime(i.end, 'virtual')},
                     {id: 'alarm', name: 'Событие', template: () => <Label theme="danger">Тревога</Label>},
-                    {id: 'reason', name: 'Комментарий'},
-                    {id: 'start', name: 'Открыта', template: (i) => formatTime(i.start, 'virtual')},
-                    {id: 'end', name: 'Восстановление', template: (i) => i.end === null ? <Label theme="danger">Не подтверждено</Label> : formatTime(i.end, 'virtual')},
+                    {id: 'reason', name: 'Комментарий', template: (i) => <Text className="alarm-comment">{i.reason}</Text>},
                 ]} />
             </Panel>
         </>}

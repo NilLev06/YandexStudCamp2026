@@ -1,4 +1,6 @@
 """Analysis of current synthetic replays; scenario truth is evaluator-only."""
+from functools import lru_cache
+
 from .single_scenarios import SINGLE_SCENARIOS, replay_single
 from .single import ALARM_NAMES, SINGLE_CONFIG, SingleMonitor
 from .monitor import PROFILES
@@ -114,3 +116,46 @@ def batch(case_ids, seed_from, seed_to):
     return {'seed_from': seed_from, 'seed_to': seed_to, 'summary': summarize(details),
             'rows': [{'case': catalog[case_id], **summarize([r for r in details if r['case_id'] == case_id])}
                      for case_id in case_ids], 'details': details}
+
+
+@lru_cache(maxsize=20)
+def examples(case_id):
+    catalog = {c['id']: c for c in cases()}
+    if case_id not in catalog:
+        raise ValueError('Неизвестный сценарий: ' + case_id)
+    measured = []
+    for seed in range(1, 1001):
+        result = analyze(case_id, seed)
+        a = result['assessment']
+        a = {**a, 'peak': max((f.get('s', f.get('difference')) or 0 for f in result['data']['frames']), default=0)}
+        measured.append(a)
+    picks = [{'seed': 42, 'label': 'Эталон', 'note': 'Опорный пример с seed 42. Остальные примеры выбраны среди seed 1…1000.'}]
+    used = {42}
+    def add(row, label, note):
+        if row['seed'] not in used:
+            picks.append({'seed': row['seed'], 'label': label, 'note': note})
+            used.add(row['seed'])
+    found = [a for a in measured if a['detected'] and a['delay'] is not None]
+    if found and min(a['delay'] for a in found) < max(a['delay'] for a in found):
+        fast = min(found, key=lambda a: (a['delay'], a['seed']))
+        slow = max(found, key=lambda a: (a['delay'], -a['seed']))
+        # Keep descriptive choices even when the reference ties for an extreme.
+        for group, label, delay in [(found, 'Быстрое обнаружение', fast['delay']), (found, 'Медленное обнаружение', slow['delay'])]:
+            tied = next((a for a in group if a['delay'] == delay and a['seed'] not in used), None)
+            if tied:
+                add(tied, label, f'Первая целевая тревога через {delay:g} с от начала нарушения. Крайний результат среди seed 1…1000; это не гарантия для других записей.')
+    elif found:
+        clean = next((a for a in found if a['passed'] and a['seed'] not in used), None)
+        if clean:
+            add(clean, 'Без замечаний', f'Нарушение обнаружено через {clean["delay"]:g} с, нет пропусков, лишних тревог и повторов.')
+    else:
+        peak = max(measured, key=lambda a: (a['peak'], -a['seed']))
+        add(peak, 'Наибольшее отклонение', 'Наибольший CUSUM или расхождение в этом сценарии среди seed 1…1000. ' + ('Тревога здесь не ожидается.' if catalog[case_id]['target'] is None else 'Ни один прогон не обнаружил все целевые нарушения.'))
+    bad = [a for a in measured if not a['passed'] and a['seed'] not in used]
+    if bad:
+        worst = max(bad, key=lambda a: (a['expected_count'] - a['detected_count'], a['false_alarms'], a['unclosed'], a['repeats'], a['early_recoveries'], -a['seed']))
+        label = ('Пропуск нарушения' if worst['detected_count'] < worst['expected_count'] else
+                 'Лишние тревоги' if worst['false_alarms'] else 'Тревога не снята' if worst['unclosed'] else
+                 'Повторные тревоги' if worst['repeats'] else 'Раннее снятие')
+        add(worst, label, '. '.join(worst['issues']))
+    return picks

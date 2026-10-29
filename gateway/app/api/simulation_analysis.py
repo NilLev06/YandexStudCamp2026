@@ -45,3 +45,12 @@ def benchmark(body: BatchRequest, settings: SettingsDep):
     if len(ids) * (body.seed_to - body.seed_from + 1) > settings.max_benchmark_runs:
         raise HTTPException(422, f'Не больше {settings.max_benchmark_runs} прогонов за запрос')
     return batch(ids, body.seed_from, body.seed_to)
+
+
+@router.get('/examples')
+def recommended_examples(case_id: str):
+    from ..engine.simulation_analysis import examples
+    try:
+        return examples(case_id)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e

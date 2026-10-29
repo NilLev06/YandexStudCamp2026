@@ -59,6 +59,7 @@ const post = <T>(path: string, body: unknown) => request<T>(path, {method: 'POST
 const id = encodeURIComponent;
 
 export const api = {
+    analysisExamples: (caseId: string) => request<{seed: number; label: string; note: string}[]>('/simulation-analysis/examples?case_id=' + encodeURIComponent(caseId)),
     analysisCases: () => request<AnalysisCase[]>('/simulation-analysis/cases'),
     analyzeSimulation: (body: {case_id: string; seed: number}) => post<SimulationAnalysis>('/simulation-analysis/replay', body),
     checkSimulations: (body: {case_ids: string[]; seed_from: number; seed_to: number}) => post<SimulationBatch>('/simulation-analysis/benchmark', body),

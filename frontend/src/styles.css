@@ -214,3 +214,11 @@ body {
     width: min(440px, 100%);
     max-width: 100%;
 }
+
+.alarm-comment {
+    display: block;
+    min-width: 200px;
+    max-width: 640px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
