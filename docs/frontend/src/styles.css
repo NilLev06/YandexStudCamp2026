@@ -1,0 +1,137 @@
+body {
+    margin: 0;
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 32px 48px;
+    max-width: 1440px;
+    box-sizing: border-box;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--g-color-line-generic);
+    border-radius: 12px;
+    background: var(--g-color-base-float);
+}
+
+.panel__head {
+    min-height: 28px;
+}
+
+.stat {
+    gap: 4px;
+}
+
+.stat_danger {
+    border-color: var(--g-color-line-danger);
+    background: var(--g-color-base-danger-light);
+}
+
+.stat_warning {
+    border-color: var(--g-color-line-warning);
+    background: var(--g-color-base-warning-light);
+}
+
+.stat_success {
+    background: var(--g-color-base-positive-light);
+}
+
+.grid {
+    display: grid;
+    gap: 16px;
+}
+
+.grid_stats {
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+.grid_charts {
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+}
+
+.grid_two {
+    grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+}
+
+.grid_sensor-head {
+    grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+}
+
+.aside-footer {
+    padding: 8px;
+}
+
+.g-table {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.g-table__row {
+    cursor: pointer;
+}
+
+@media (max-width: 700px) {
+    .page {
+        padding: 16px;
+    }
+
+    .grid_two,
+    .grid_sensor-head,
+    .grid_charts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--g-color-base-generic);
+}
+
+.chart-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    color: var(--g-color-text-secondary);
+    font-size: var(--g-text-caption-2-font-size);
+}
+
+.swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 8px;
+    border-radius: 3px;
+    opacity: 0.6;
+}
+
+.swatch_thin {
+    height: 4px;
+    background: #4da2f1;
+}
+
+.swatch_line {
+    height: 0;
+    border-top: 2px dashed #f5a524;
+    border-radius: 0;
+    opacity: 1;
+}
+
+.swatch_red {
+    border-top-color: #e5484d;
+}
+
+.progress-wide {
+    width: 100%;
+}
