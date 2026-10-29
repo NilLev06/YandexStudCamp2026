@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/UI-React%20%2B%20Gravity-61DAFB?logo=react&logoColor=black)
 
-[Запуск](#запуск) · [Устройство](docs/ARCHITECTURE.md) · [Алгоритм](docs/DETECTOR.md) · [API](gateway/README.md) · [Проверки](docs/DEVELOPMENT.md)
+[Запуск](#запуск) · [Спецификации](docs/TECHNICAL-SPEC.md) · [API](gateway/README.md) · [Проверки](docs/DEVELOPMENT.md)
 
 </div>
 
@@ -84,8 +84,10 @@ Gateway подхватывает `frontend/dist` при старте и разд
 
 | Материал | Что внутри |
 |---|---|
-| [Архитектура](docs/ARCHITECTURE.md) | Компоненты, путь данных, часы, хранение, страницы интерфейса |
-| [Спецификация детектора](docs/DETECTOR.md) | Формулы, параметры, статусы, открытие и закрытие инцидентов |
+| [Техническая спецификация](docs/TECHNICAL-SPEC.md) | Архитектура, алгоритмы, параметры, структуры данных и сложность |
+| [Backend-спецификация](docs/BACKEND-SPEC.md) | Контракты генератора, монитора, replay и оценщика |
+| [Frontend-спецификация](docs/FRONTEND-SPEC.md) | Страницы, обновления, графики, автономное воспроизведение и сборка |
+| [Схема Obsidian](docs/architecture.canvas) | Компоненты и связи в редактируемом Canvas |
 | [Gateway и API](gateway/README.md) | Формат телеметрии, маршруты, SSE, ошибки, переменные окружения |
 | [Разработка и проверка](docs/DEVELOPMENT.md) | Зависимости, Windows, сборка, тесты, сценарии и метрики |
 | [Результаты валидации](docs/VALIDATION.md) | Воспроизводимый отчёт по сценариям, ступеням и моделям шума |
