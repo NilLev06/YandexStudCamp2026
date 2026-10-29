@@ -1,0 +1,237 @@
+{
+  "machine": "machine-1-1",
+  "source": "https://github.com/NetManAIOps/OmniAnomaly",
+  "revision": "7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4",
+  "source_sha256": {
+    "train": "ecebd2933ccdc1126e2abbfb538762dbde16410cebc77257a7b96e1e1fbcf753",
+    "test": "bdb801d8d52ce6b0c4a20c310edf31b5cee9bc82eb84fb38e7d4a19309b16ddb",
+    "test_label": "cddf33441ae480c6074e173c897d4715eb893f24a7078d3d3e1b79b200c7cd19",
+    "interpretation_label": "ea2b75dacb9cd140d81962203b18706e8e85d70c87dcced69746a37ba133fa48"
+  },
+  "protocol": {
+    "calibration": {
+      "split": "train",
+      "start_index": 0,
+      "end_index_exclusive": 18986
+    },
+    "holdout": {
+      "split": "train",
+      "start_index": 18986,
+      "end_index_exclusive": 28479
+    },
+    "test": "All original test rows and labels; one forward pass; no tuning on test labels.",
+    "axis": "sample indices, NOT physical seconds",
+    "window_samples": 3,
+    "opening_windows": 1,
+    "recovery_windows": 2,
+    "sigma_floor": 0.01,
+    "aggregation": "Alarm if any of the 38 independent channels has an open incident.",
+    "disabled": [
+      "physical bounds / saturation",
+      "physical slew-rate limit",
+      "stuck detector"
+    ],
+    "network_faults": "Not evaluated: replay delivers one sample per synthetic tick without delays.",
+    "point_scoring": "Original binary labels; no point adjustment or event-wide expansion.",
+    "event_scoring": "Any overlap with an active alarm; may count an alarm already open before the event.",
+    "train_holdout_labels": "Assumed normal; no per-row reference labels provided for train.",
+    "scope": "One machine only. This benchmark does not validate every fault type."
+  },
+  "profiles": [
+    {
+      "mean": 0.052503863373011696,
+      "sigma": 0.05752194946854582
+    },
+    {
+      "mean": 0.04386361413673233,
+      "sigma": 0.031908881181559524
+    },
+    {
+      "mean": 0.03982849762983251,
+      "sigma": 0.026122902717794792
+    },
+    {
+      "mean": 0.03590551938270304,
+      "sigma": 0.025159365051577814
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.9116867713578426,
+      "sigma": 0.04492233121053076
+    },
+    {
+      "mean": 0.2628668114400084,
+      "sigma": 0.08061364927886518
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.018984792004634994,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.00015711466343621615,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.12887701369430107,
+      "sigma": 0.034662246758327964
+    },
+    {
+      "mean": 0.08578173311914042,
+      "sigma": 0.04545833103368511
+    },
+    {
+      "mean": 0.025457134730854314,
+      "sigma": 0.015922914809216343
+    },
+    {
+      "mean": 0.048641821131359946,
+      "sigma": 0.013932625343990698
+    },
+    {
+      "mean": 0.0856854215737912,
+      "sigma": 0.036029064539475394
+    },
+    {
+      "mean": 0.1446054584957337,
+      "sigma": 0.03444687437107122
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.06552020446644896,
+      "sigma": 0.02718692546328329
+    },
+    {
+      "mean": 0.04676554471716001,
+      "sigma": 0.027111027246143247
+    },
+    {
+      "mean": 0.05008170594121985,
+      "sigma": 0.02791999250581506
+    },
+    {
+      "mean": 0.03766112514484357,
+      "sigma": 0.023116990837470233
+    },
+    {
+      "mean": 0.5669134664489623,
+      "sigma": 0.2611967705834899
+    },
+    {
+      "mean": 0.009158452122616664,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.014359369324765616,
+      "sigma": 0.010683827953428227
+    },
+    {
+      "mean": 0.008395758980301276,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.04184991915095333,
+      "sigma": 0.023630960220718297
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.004206548667439166,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.03513415469293163,
+      "sigma": 0.021539240797778088
+    },
+    {
+      "mean": 0.02793362098388286,
+      "sigma": 0.014721393085005462
+    },
+    {
+      "mean": 0.00015882487095754766,
+      "sigma": 0.01
+    },
+    {
+      "mean": 3.247282207942695e-05,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.038439108395659956,
+      "sigma": 0.025896028197386116
+    },
+    {
+      "mean": 0.038490614452754666,
+      "sigma": 0.02589311263458062
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    },
+    {
+      "mean": 0.0,
+      "sigma": 0.01
+    }
+  ],
+  "assumed_normal_train_holdout": {
+    "channels": 38,
+    "samples": 9493,
+    "anomaly_points": 0,
+    "alarm_points": 9244,
+    "tp": 0,
+    "fp": 9244,
+    "fn": 0,
+    "tn": 249,
+    "point_precision": 0.0,
+    "point_recall": 0.0,
+    "false_positive_rate": 0.9737701464236806,
+    "event_total": 0,
+    "event_detected": 0,
+    "event_delays_samples": [],
+    "prediction_sha256": "368907652f4347f46abb5cb179ca12d2bb6c10550fc44d933528de27079d2fb3"
+  },
+  "labelled_test": {
+    "channels": 38,
+    "samples": 28479,
+    "anomaly_points": 2694,
+    "alarm_points": 28254,
+    "tp": 2694,
+    "fp": 25560,
+    "fn": 0,
+    "tn": 225,
+    "point_precision": 0.09534933106816734,
+    "point_recall": 1.0,
+    "false_positive_rate": 0.9912739965095986,
+    "event_total": 8,
+    "event_detected": 8,
+    "event_delays_samples": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction_sha256": "815ad7a2804b758e2191f2e3df6a957b0c7e81ee815484fb0a7a59201ca02206"
+  }
+}

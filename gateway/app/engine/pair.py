@@ -162,7 +162,12 @@ def generate_pair(scenario: str = 'drift', seed: int = 42) -> dict[str, Any]:
     return {'scenario': scenario, 'seed': seed, 'duration': 160, 'messages': messages, 'truth': truth}
 
 
-def replay_pair(scenario: str = 'drift', seed: int = 42) -> dict[str, Any]:
+def replay_pair(scenario: str = 'drift', seed: int = 42, sensor_count: int = 2) -> dict[str, Any]:
+    if sensor_count == 3:
+        from .group import replay_three
+        return replay_three(scenario, seed)
+    if sensor_count != 2:
+        raise ValueError('Sensor count must be 2 or 3')
     data = generate_pair(scenario, seed)
     monitor, frames, cursor = PairMonitor(), [], 0
     for now in range(data['duration'] + 1):
@@ -171,5 +176,5 @@ def replay_pair(scenario: str = 'drift', seed: int = 42) -> dict[str, Any]:
             incoming.append(data['messages'][cursor])
             cursor += 1
         frames.append(monitor.tick(now, incoming))
-    return {**data, 'config': dict(PAIR_CONFIG), 'frames': frames,
+    return {**data, 'sensor_count': 2, 'sensor_ids': ['A', 'B'], 'config': dict(PAIR_CONFIG), 'frames': frames,
             'incidents': monitor.incidents, 'events': monitor.events}

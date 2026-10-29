@@ -28,7 +28,7 @@ function initialTheme(): Theme {
 
 const PAGES = [
     {id: 'single', path: '/single', title: 'Один датчик', icon: Pulse, match: (p: string) => p.startsWith('/single')},
-    {id: 'pair', path: '/pair', title: 'Два датчика', icon: Layers, match: (p: string) => p.startsWith('/pair')},
+    {id: 'pair', path: '/pair', title: 'Несколько датчиков', icon: Layers, match: (p: string) => p.startsWith('/pair')},
     {id: 'incidents', path: '/incidents', title: 'Тревоги', icon: TriangleExclamation, match: (p: string) => p.startsWith('/incidents')},
     {id: 'analysis', path: '/analysis', title: 'Анализ сценариев', icon: Flask, match: (p: string) => p.startsWith('/analysis')},
 ];

@@ -1,4 +1,4 @@
-import {Alert, Button, Flex, Label, Loader, Text} from '@gravity-ui/uikit';
+import {Alert, Button, Flex, Label, Loader, SegmentedRadioGroup, Text} from '@gravity-ui/uikit';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {api} from '../api/client';
@@ -13,7 +13,7 @@ import {formatNumber, formatTime} from '../lib/format';
 import {useMeta} from '../lib/meta';
 
 const SCENARIOS: [PairScenario, string][] = [
-    ['drift', 'Дрейф одного датчика'], ['normal', 'Нормальная работа'],
+    ['drift', 'Дрейф одного датчика'], ['dual_drift', 'Дрейф двух датчиков'], ['normal', 'Нормальная работа'],
     ['spike', 'Одиночный выброс'], ['gap', 'Пропуск и старая пачка'],
 ];
 const STATUS = {
@@ -26,6 +26,7 @@ const STATUS = {
 
 export function PairPage() {
     const meta = useMeta();
+    const [sensorCount, setSensorCount] = useState<2 | 3>(2);
     const [seed, setSeed] = useState<number | null>(42);
     const [result, setResult] = useState<PairReplay | null>(null);
     const [position, setPosition] = useState(0);
@@ -33,12 +34,12 @@ export function PairPage() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const requestId = useRef(0);
-    const load = useCallback(async (scenario: PairScenario, selectedSeed: number) => {
+    const load = useCallback(async (scenario: PairScenario, selectedSeed: number, count: 2 | 3 = 2) => {
         const id = ++requestId.current;
-        setPlaying(false); setBusy(true); setError(null);
+        setPlaying(false); setBusy(true); setError(null); setResult(null);
         try {
-            const replay = await api.pairReplay({scenario, seed: selectedSeed});
-            if (id === requestId.current) {setResult(replay); setPosition(0); saveSimulation(`pair:${replay.scenario}`, 'Два датчика · ' + (SCENARIOS.find(([value]) => value === replay.scenario)?.[1] ?? replay.scenario), replay);}
+            const replay = await api.pairReplay({scenario, seed: selectedSeed, sensor_count: count});
+            if (id === requestId.current) {setResult(replay); setPosition(0); saveSimulation(`${count === 3 ? 'triple' : 'pair'}:${replay.scenario}`, `${count} датчика · ` + (SCENARIOS.find(([value]) => value === replay.scenario)?.[1] ?? replay.scenario), replay);}
         } catch (e) {
             if (id === requestId.current) setError((e as Error).message);
         } finally {
@@ -59,15 +60,26 @@ export function PairPage() {
     const state = activeAlarms.length ? {text: 'Тревога', theme: 'danger' as const} : frame ? STATUS[frame.status] : null;
     const visibleEvents = result?.events.filter((e) => e.time <= position) ?? [];
     return (
-        <LinkedChartsProvider resetKey={`${result?.scenario}:${result?.seed}:${position}`}><Page title="Два датчика" subtitle="Сравнение двух источников одной температуры · синтетическое воспроизведение">
+        <LinkedChartsProvider resetKey={`${result?.sensor_count}:${result?.scenario}:${result?.seed}:${position}`}><Page title="Несколько датчиков" subtitle="Сравнение двух или трёх источников одной температуры · симуляция">
+            <Panel title="Количество датчиков">
+                <SegmentedRadioGroup value={String(sensorCount)} disabled={busy || !validSeed} onUpdate={(value) => {
+                    const count = Number(value) as 2 | 3;
+                    setSensorCount(count);
+                    load(count === 2 && result?.scenario === 'dual_drift' ? 'drift' : result?.scenario ?? 'drift', seed!, count);
+                }} options={[{value: '2', content: '2 датчика'}, {value: '3', content: '3 датчика'}]} />
+                <Text color="secondary">{sensorCount === 2 ? 'Одна пара A–B. Расхождение не определяет виновный источник.' :
+                    'Три пары A–B, A–C и B–C. Согласованная пара помогает предположить, какой источник отличается.'}</Text>
+            </Panel>
             <Panel title="Сценарий">
                 <Flex gap={2} wrap>
-                    {SCENARIOS.map(([value, label]) => <Button key={value} selected={result?.scenario === value} view={result?.scenario === value ? 'outlined-info' : 'outlined'}
-                        disabled={busy || !validSeed} onClick={() => load(value, seed!)}>{label}</Button>)}
+                    {SCENARIOS.filter(([value]) => sensorCount === 3 || value !== 'dual_drift').map(([value, label]) => <Button key={value} selected={result?.scenario === value} view={result?.scenario === value ? 'outlined-info' : 'outlined'}
+                        disabled={busy || !validSeed} onClick={() => load(value, seed!, sensorCount)}>{label}</Button>)}
                 </Flex>
+                {result?.scenario === 'dual_drift' && <Alert theme="info" title="В этом примере дрейфуют B и C"
+                    message="B и C смещаются вместе, A остаётся нормальным. Поэтому согласованное большинство может ошибочно указать на A. Без независимого эталона нельзя доказать, какие источники неисправны." />}
                 <Flex gap={2} wrap alignItems="flex-end" style={{marginTop: 16}}>
                     <SeedField value={seed} onUpdate={setSeed} />
-                    <Button loading={busy} disabled={!validSeed} onClick={() => load(result?.scenario ?? 'drift', seed!)}>Пересчитать</Button>
+                    <Button loading={busy} disabled={!validSeed} onClick={() => load(result?.scenario ?? 'drift', seed!, sensorCount)}>Пересчитать</Button>
                     <Text color="secondary">{result ? `Показана запись с seed ${result.seed}` : 'Загрузка записи…'}</Text>
                 </Flex>
             </Panel>
@@ -81,12 +93,12 @@ export function PairPage() {
                         </Button>
                         <Button onClick={() => seek(0)}>Сначала</Button>
                         <label className="pair-time-label">Время
-                            <input className="pair-time" type="range" aria-label="Время сценария двух датчиков" min={0} max={result.duration} value={position}
+                            <input className="pair-time" type="range" aria-label="Время сценария нескольких датчиков" min={0} max={result.duration} value={position}
                                 onChange={(e) => seek(Number(e.target.value))} />
                         </label>
                     </Flex>
                     <Flex gap={1} wrap style={{marginTop: 12}}>
-                        {(result.scenario === 'drift' ? [[50, 'Общая динамика'], [90, 'Расхождение'], [145, 'Восстановление']]
+                        {((result.scenario === 'drift' || result.scenario === 'dual_drift') ? [[50, 'Общая динамика'], [90, 'Расхождение'], [145, 'Восстановление']]
                             : result.scenario === 'gap' ? [[80, 'Потеря данных'], [100, 'Старая пачка'], [120, 'Свежие пары']]
                             : result.scenario === 'spike' ? [[80, 'Выброс'], [90, 'После выброса']]
                             : [[50, 'Общее изменение'], [145, 'Нормальная работа']]).map(([time, label]) =>
@@ -103,13 +115,14 @@ export function PairPage() {
                 <div className="grid grid_stats">
                     <Stat label="Датчик A" value={`${formatNumber(frame.a)} °C`} hint={`Возраст: ${formatNumber(frame.age_a)} с`} />
                     <Stat label="Датчик B" value={`${formatNumber(frame.b)} °C`} hint={`Возраст: ${formatNumber(frame.age_b)} с`} />
-                    <Stat label="Разница |A − B|" value={frame.difference === null ? 'Нет оценки' : `${formatNumber(frame.difference)} °C`}
+                    {result.sensor_count === 3 && <Stat label="Датчик C" value={`${formatNumber(frame.c)} °C`} hint={`Возраст: ${formatNumber(frame.age_c)} с`} />}
+                    <Stat label={result.sensor_count === 3 ? 'Максимальное расхождение' : 'Разница |A − B|'} value={frame.difference === null ? 'Нет оценки' : `${formatNumber(frame.difference)} °C`}
                         hint={`Порог: ${result.config.threshold} °C · окно ${result.config.window} с · новых пар подряд: ${frame.bad_run}`}
                         tone={frame.status === 'alarm' ? 'danger' : undefined} />
                 </div>
-                <Panel title="Одна величина — два независимых измерения">
+                <Panel title={`Одна величина — ${result.sensor_count} датчика`}>
                     <PairCharts replay={result} position={position} />
-                    <Text variant="caption-2" color="secondary">Оба датчика видят общие изменения температуры. При дрейфе один источник смещается; монитор не знает, какой именно.</Text>
+                    <Text variant="caption-2" color="secondary">{result.scenario === 'dual_drift' ? 'В симуляции дрейфуют B и C, источник A остаётся нормальным. Монитор не получает эту разметку.' : result.scenario === 'normal' ? 'Все источники измеряют общую температуру, неисправностей в этом сценарии нет.' : 'Все датчики видят общие изменения температуры. В этом сценарии нарушение внесено только в B; монитор не получает эту разметку.'}</Text>
                 </Panel>
                 <Panel title="Расхождение и пороги">
                     <PairCharts replay={result} position={position} difference />
@@ -132,7 +145,7 @@ export function PairPage() {
                         Максимальный возраст {result.config.max_age} с, рассогласование времени ≤ {result.config.max_skew} с.
                         Нужны согласованные часы, одинаковые единицы и сопоставимые места измерения.
                         Два одинаково смещённых датчика могут остаться согласованными. Разметка генератора не передаётся монитору.
-                        Этот раздел воспроизводит запись; live-подключение пары через gateway пока не реализовано.</Text>
+                        В режиме трёх датчиков сравниваются все пары; совпадение двух источников не гарантирует их исправность.</Text>
                 </Panel>
             </>}
         </Page></LinkedChartsProvider>

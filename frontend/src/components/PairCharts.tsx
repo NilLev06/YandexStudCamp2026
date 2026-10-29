@@ -11,10 +11,13 @@ export function PairCharts({replay, position, difference = false, showTruth = fa
         const x = (t: number) => toChartX(t, 'virtual');
         const frames = replay.frames.filter((f) => f.now <= position);
         const measurements = replay.messages.filter((m) => m.received_at <= position);
+        const ids = replay.sensor_ids ?? ['A', 'B'];
+        const pairNames = ids.length === 3 ? ['A-B', 'A-C', 'B-C'] : ['A-B'];
         const series: ChartData['series']['data'] = difference
-            ? [{type: 'line', name: '|A − B|', color: '#8a63d2', nullMode: 'skip',
-                data: frames.map((f) => ({x: x(f.now), y: f.difference}))}]
-            : ['A', 'B'].map((name, index) => {
+            ? pairNames.map((name, index) => ({type: 'line' as const, name: `|${name.replace('-', ' − ')}|`,
+                color: ['#8a63d2', '#4d7cfe', '#30a46c'][index], nullMode: 'skip' as const,
+                data: frames.map((f) => ({x: x(f.now), y: f.pairs ? f.pairs[name]?.difference ?? null : f.difference}))}))
+            : ids.map((name, index) => {
                 const values = measurements.filter((m) => m.sensor_id === name).sort((a, b) => a.event_time - b.event_time);
                 const points: {x: number; y: number | null}[] = [];
                 values.forEach((m, i) => {
@@ -23,7 +26,7 @@ export function PairCharts({replay, position, difference = false, showTruth = fa
                         points.push({x: x((m.event_time + previous.event_time) / 2), y: null});
                     points.push({x: x(m.event_time), y: m.value});
                 });
-                return {type: 'line' as const, name: 'Датчик ' + name, color: index ? '#f5a524' : '#4d7cfe',
+                return {type: 'line' as const, name: 'Датчик ' + name, color: ['#4d7cfe', '#f5a524', '#30a46c'][index],
                     lineWidth: 1.8, nullMode: 'skip' as const, data: points};
             });
         return {
@@ -39,7 +42,7 @@ export function PairCharts({replay, position, difference = false, showTruth = fa
                 {value: replay.config.recover_threshold, color: '#30a46c', dashStyle: 'Dot' as const, label: {text: 'Восстановление ' + replay.config.recover_threshold + ' °C'}},
             ]} : {})}],
             tooltip: {headerFormat: chartTimeHeader('virtual')},
-            legend: {enabled: !difference},
+            legend: {enabled: !difference || ids.length === 3},
         };
     }, [replay, position, difference, showTruth]);
     return <div className="replay-chart" style={{height: difference ? 220 : 320}}><LinkedChart data={data} /></div>;

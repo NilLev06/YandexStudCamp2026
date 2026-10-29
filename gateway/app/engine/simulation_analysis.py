@@ -6,6 +6,7 @@ from .single import ALARM_NAMES, SINGLE_CONFIG, SingleMonitor
 from .monitor import PROFILES
 from .scenarios import generate
 from .pair import PAIR_SCENARIOS, replay_pair
+from .group import GROUP_SCENARIOS
 
 TARGETS = {'drift': 'level', 'rise': 'level', 'step': 'level', 'noise': 'noise',
            'periodic': 'noise', 'stuck': 'stuck', 'saturation': 'saturation',
@@ -20,17 +21,17 @@ def cases():
                'expected_events': [{'target': 'level', 'start': 100, 'end': 200},
                                    {'target': 'availability', 'start': 240, 'end': 300}],
                'expectation': 'Ожидаются две целевые тревоги: изменение уровня и потеря свежести. Одиночный выброс и смена режима не должны открывать тревогу.'}]
-    for kind, names in [('single', SINGLE_SCENARIOS), ('pair', PAIR_SCENARIOS)]:
+    for kind, names in [('single', SINGLE_SCENARIOS), ('pair', PAIR_SCENARIOS), ('triple', GROUP_SCENARIOS)]:
         for scenario, name in names.items():
-            target = TARGETS.get(scenario) if kind == 'single' else {'drift': 'disagreement', 'gap': 'availability'}.get(scenario)
-            start = 60 if kind == 'single' else 65 if scenario == 'drift' else 70
-            end = 120 if kind == 'single' else 125 if scenario == 'drift' else 110
-            result.append({'id': f'{kind}:{scenario}', 'kind': kind, 'scenario': scenario,
-                           'name': ('Один датчик · ' if kind == 'single' else 'Два датчика · ') + name,
+            target = TARGETS.get(scenario) if kind == 'single' else {'drift': 'disagreement', 'dual_drift': 'disagreement', 'gap': 'availability'}.get(scenario)
+            start = 60 if kind == 'single' else 65 if scenario in ('drift', 'dual_drift') else 70
+            end = 120 if kind == 'single' else 125 if scenario in ('drift', 'dual_drift') else 110
+            result.append({'id': f'{kind}:{scenario}', 'kind': 'single' if kind == 'single' else 'pair', 'scenario': scenario, 'sensor_count': 3 if kind == 'triple' else 2,
+                           'name': ('Один датчик · ' if kind == 'single' else '3 датчика · ' if kind == 'triple' else '2 датчика · ') + name,
                            'target': target, 'fault_start': start if target else None,
                            'fault_end': end if target else None,
                            'expected_events': [{'target': target, 'start': start, 'end': end}] if target else [],
-                           'expectation': 'Ожидается тревога по целевому нарушению и восстановление после него.' if target else
+                           'expectation': 'B и C смещаются вместе, A остаётся нормальным. Ожидается обнаружение расхождения; согласованное большинство не определяет виновных.' if scenario == 'dual_drift' else 'Ожидается тревога по целевому нарушению и восстановление после него.' if target else
                            'Тревог не ожидается: нормальная работа, штатная смена режима или одиночный выброс.'})
     return result
 
@@ -53,19 +54,24 @@ def analyze(case_id, seed):
     case = next((c for c in cases() if c['id'] == case_id), None)
     if case is None:
         raise ValueError('Неизвестный сценарий: ' + case_id)
-    data = combined(seed) if case['scenario'] == 'combined' else (replay_single if case['kind'] == 'single' else replay_pair)(case['scenario'], seed)
+    data = (combined(seed) if case['scenario'] == 'combined' else replay_single(case['scenario'], seed)
+            if case['kind'] == 'single' else replay_pair(case['scenario'], seed, case['sensor_count']))
     evaluated, relevant_ids = [], set()
     for event in case['expected_events']:
         matches = [i for i in data['incidents'] if i['type'] == event['target']
                    and event['start'] <= i['start'] <= event['end'] + 3]
         relevant_ids.update(i['id'] for i in matches)
-        recovered = matches[-1]['end'] if matches else None
+        recovered = max(i['end'] for i in matches) if matches and all(i['end'] is not None for i in matches) else None
+        by_pair = {}
+        for incident in matches:
+            pair = incident.get('pair', 'single')
+            by_pair[pair] = by_pair.get(pair, 0) + 1
         evaluated.append({**event, 'detected': bool(matches),
                           'detection_time': matches[0]['start'] if matches else None,
                           'delay': matches[0]['start'] - event['start'] if matches else None,
                           'recovery_time': recovered,
                           'recovery_delay': recovered - event['end'] if recovered is not None and recovered >= event['end'] else None,
-                          'repeats': max(0, len(matches) - 1),
+                          'repeats': sum(max(0, count - 1) for count in by_pair.values()),
                           'early_recoveries': sum(i['end'] is not None and i['end'] < event['end'] for i in matches)})
     false = [i for i in data['incidents'] if not any(e['start'] <= i['start'] <= e['end'] + 3 for e in case['expected_events'])]
     false_ids = {i['id'] for i in false}
@@ -118,7 +124,7 @@ def batch(case_ids, seed_from, seed_to):
                      for case_id in case_ids], 'details': details}
 
 
-@lru_cache(maxsize=20)
+@lru_cache(maxsize=25)
 def examples(case_id):
     catalog = {c['id']: c for c in cases()}
     if case_id not in catalog:

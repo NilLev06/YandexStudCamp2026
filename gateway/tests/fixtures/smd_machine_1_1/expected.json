@@ -1,0 +1,38 @@
+{
+  "normal": {
+    "channels": 38,
+    "samples": 300,
+    "anomaly_points": 0,
+    "alarm_points": 264,
+    "tp": 0,
+    "fp": 264,
+    "fn": 0,
+    "tn": 36,
+    "point_precision": 0.0,
+    "point_recall": 0.0,
+    "false_positive_rate": 0.88,
+    "event_total": 0,
+    "event_detected": 0,
+    "event_delays_samples": [],
+    "prediction_sha256": "95affa8764236d0af31ab22252f0ada5a69ab70607327f1dc0f67b2fb599ff04"
+  },
+  "annotated": {
+    "channels": 38,
+    "samples": 1146,
+    "anomaly_points": 546,
+    "alarm_points": 1137,
+    "tp": 546,
+    "fp": 591,
+    "fn": 0,
+    "tn": 9,
+    "point_precision": 0.48021108179419525,
+    "point_recall": 1.0,
+    "false_positive_rate": 0.985,
+    "event_total": 1,
+    "event_detected": 1,
+    "event_delays_samples": [
+      0
+    ],
+    "prediction_sha256": "a7138839407666782f0fb1416da8fc59ac47c3b89c99b6494f7e5ebcb5b04bdb"
+  }
+}

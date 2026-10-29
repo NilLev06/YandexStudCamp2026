@@ -131,7 +131,7 @@ export function AnalysisPage() {
                 ]} />
             </Panel>}
             <LinkedChartsProvider resetKey={`${ready.case.id}:${ready.assessment.seed}`}>
-                <Panel title={single ? 'Измерения датчика' : 'Измерения двух датчиков'} extra={<Flex gap={2} wrap>
+                <Panel title={single ? 'Измерения датчика' : `Измерения ${pair?.sensor_count ?? 2} датчиков`} extra={<Flex gap={2} wrap>
                     <Checkbox checked={showTruth} onUpdate={setShowTruth}>Разметка генератора</Checkbox>
                     {single && <Checkbox checked={showMedian} onUpdate={setShowMedian}>Медиана окна</Checkbox>}
                 </Flex>}>

@@ -180,8 +180,13 @@ export type StreamMessage =
     | {type: 'sensor_added'; sensor_id: string; summary: SensorSummary}
     | {type: 'sensor_removed'; sensor_id: string};
 
-export type PairScenario = 'normal' | 'drift' | 'spike' | 'gap';
+export type PairScenario = 'normal' | 'drift' | 'dual_drift' | 'spike' | 'gap';
 export interface PairFrame {
+    c?: number | null;
+    age_c?: number | null;
+    sensors?: Record<string, {value: number | null; age: number | null}>;
+    pairs?: Record<string, PairFrame>;
+    suspect_sensor?: string | null;
     now: number;
     a: number | null;
     b: number | null;
@@ -196,6 +201,8 @@ export interface PairFrame {
     comparison_alarm_open: boolean;
 }
 export interface PairReplay {
+    sensor_count: 2 | 3;
+    sensor_ids: string[];
     scenario: PairScenario;
     seed: number;
     duration: number;

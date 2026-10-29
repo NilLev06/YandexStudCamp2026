@@ -1,0 +1,46 @@
+{
+  "source": "https://github.com/NetManAIOps/OmniAnomaly",
+  "revision": "7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4",
+  "machine": "machine-1-1",
+  "source_sha256": {
+    "train": "ecebd2933ccdc1126e2abbfb538762dbde16410cebc77257a7b96e1e1fbcf753",
+    "test": "bdb801d8d52ce6b0c4a20c310edf31b5cee9bc82eb84fb38e7d4a19309b16ddb",
+    "test_label": "cddf33441ae480c6074e173c897d4715eb893f24a7078d3d3e1b79b200c7cd19",
+    "interpretation_label": "ea2b75dacb9cd140d81962203b18706e8e85d70c87dcced69746a37ba133fa48"
+  },
+  "selection": "Training prefixes and first annotated test event with 300 context samples on each side; not a representative benchmark.",
+  "files": {
+    "calibration.csv": {
+      "file": "calibration.csv",
+      "source_split": "train",
+      "start_index": 0,
+      "end_index_exclusive": 600,
+      "sha256": "9b059b17c9ebd8593bf72c95f6be69434e640a4046282588fcca7d2c2a251038"
+    },
+    "normal.csv": {
+      "file": "normal.csv",
+      "source_split": "train",
+      "start_index": 600,
+      "end_index_exclusive": 900,
+      "sha256": "f957c21d0a7cdf9aa3b80e6dea2594f06f0aa011a061d330840e96d72d12c4be"
+    },
+    "test.csv": {
+      "file": "test.csv",
+      "source_split": "test",
+      "start_index": 15549,
+      "end_index_exclusive": 16695,
+      "sha256": "31519d6966c8f5a0c04c5aa39ede43d7797d4dddb792081c25aabfc67f6b62ef"
+    },
+    "labels.txt": {
+      "file": "labels.txt",
+      "source_split": "test_label",
+      "start_index": 15549,
+      "end_index_exclusive": 16695,
+      "sha256": "8c3cb93bf68bc19834e3a11ebb476dfe55c562a796d4a8595d24a7fb6c3e0a35"
+    },
+    "LICENSE": {
+      "file": "LICENSE",
+      "sha256": "c9bef1aab5be4ae6e0735a9f5974de043b8a1894bd8a2a7a163e36027b8895df"
+    }
+  }
+}

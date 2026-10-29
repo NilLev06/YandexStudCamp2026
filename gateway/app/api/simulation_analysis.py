@@ -16,7 +16,7 @@ class ReplayRequest(BaseModel):
 
 class BatchRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    case_ids: list[str] = Field(min_length=1, max_length=20)
+    case_ids: list[str] = Field(min_length=1, max_length=25)
     seed_from: StrictInt = Field(default=1, ge=SEED['min'], le=SEED['max'])
     seed_to: StrictInt = Field(default=10, ge=SEED['min'], le=SEED['max'])
 
