@@ -19,4 +19,4 @@ __pycache__/
 # Frontend build
 frontend/dist/
 # Original SMD measurements are downloaded locally; provenance is tracked separately.
-data/smd/raw/
+experiments/smd/raw/
