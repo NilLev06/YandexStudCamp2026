@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from .api import analysis, incidents, sensors, simulations, stream, system, telemetry
+from .api import analysis, incidents, pair, sensors, simulations, single, simulation_analysis, stream, system, telemetry
 from .broker import Broker
 from .registry import Registry, RegistryError
 from .settings import VERSION, Settings
@@ -62,7 +62,7 @@ def create_app(settings: Settings | None = None, *, start_ticker: bool = True,
     async def registry_error(_: Request, exc: RegistryError) -> JSONResponse:
         return JSONResponse({'detail': exc.detail}, status_code=exc.status)
 
-    for module in (system, telemetry, sensors, incidents, simulations, analysis, stream):
+    for module in (system, telemetry, sensors, incidents, simulations, analysis, pair, single, simulation_analysis, stream):
         app.include_router(module.router, prefix=API_PREFIX)
 
     if settings.static_dir and (settings.static_dir / 'index.html').is_file():

@@ -16,7 +16,7 @@ function title(e: LogEvent) {
     if (e.kind === 'unknown_mode') return <Label theme="warning">Неизвестный режим</Label>;
     const meta = INCIDENT[e.type as IncidentType];
     const opened = e.kind === 'open';
-    return <Label theme={opened ? meta?.theme ?? 'danger' : 'success'}>{(opened ? 'Открыт: ' : 'Закрыт: ') + (meta?.text ?? e.type)}</Label>;
+    return <Label theme={opened ? meta?.theme ?? 'danger' : 'success'}>{opened ? 'Тревога' : 'Восстановление'}</Label>;
 }
 
 export function EventLog({events, clock, limit = 30}: {events: LogEvent[]; clock: Clock; limit?: number}) {

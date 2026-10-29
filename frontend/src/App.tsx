@@ -1,16 +1,16 @@
-import {ChartColumn, Flask, Moon, Sun, TriangleExclamation} from '@gravity-ui/icons';
+import {ChartColumn, Flask, Layers, Moon, Pulse, Sun, TriangleExclamation} from '@gravity-ui/icons';
 import {AsideHeader, type MenuItem} from '@gravity-ui/navigation';
 import {Alert, Button, Icon, Loader, ThemeProvider, Toaster, ToasterComponent, ToasterProvider} from '@gravity-ui/uikit';
 import {useEffect, useState} from 'react';
-import {Route, Routes, useLocation, useNavigate} from 'react-router-dom';
+import {Navigate, Route, Routes, useLocation, useNavigate} from 'react-router-dom';
 
 import {api} from './api/client';
 import {useAsync} from './hooks/useAsync';
 import {MetaContext} from './lib/meta';
 import {AnalysisPage} from './pages/AnalysisPage';
 import {IncidentsPage} from './pages/IncidentsPage';
-import {OverviewPage} from './pages/OverviewPage';
-import {SensorPage} from './pages/SensorPage';
+import {SinglePage} from './pages/SinglePage';
+import {PairPage} from './pages/PairPage';
 
 type Theme = 'light' | 'dark';
 
@@ -27,8 +27,9 @@ function initialTheme(): Theme {
 }
 
 const PAGES = [
-    {id: 'overview', path: '/', title: 'Обзор', icon: ChartColumn, match: (p: string) => p === '/' || p.startsWith('/sensors')},
-    {id: 'incidents', path: '/incidents', title: 'Инциденты', icon: TriangleExclamation, match: (p: string) => p.startsWith('/incidents')},
+    {id: 'single', path: '/single', title: 'Один датчик', icon: Pulse, match: (p: string) => p.startsWith('/single')},
+    {id: 'pair', path: '/pair', title: 'Два датчика', icon: Layers, match: (p: string) => p.startsWith('/pair')},
+    {id: 'incidents', path: '/incidents', title: 'Тревоги', icon: TriangleExclamation, match: (p: string) => p.startsWith('/incidents')},
     {id: 'analysis', path: '/analysis', title: 'Анализ сценариев', icon: Flask, match: (p: string) => p.startsWith('/analysis')},
 ];
 
@@ -82,11 +83,12 @@ export function App() {
         return (
             <MetaContext.Provider value={meta.data}>
                 <Routes>
-                    <Route path="/" element={<OverviewPage />} />
-                    <Route path="/sensors/:sensorId" element={<SensorPage />} />
+                    <Route path="/single" element={<SinglePage />} />
+                    <Route path="/pair" element={<PairPage />} />
+                    <Route path="/" element={<Navigate to="/single" replace />} />
                     <Route path="/incidents" element={<IncidentsPage />} />
                     <Route path="/analysis" element={<AnalysisPage />} />
-                    <Route path="*" element={<OverviewPage />} />
+                    <Route path="*" element={<Navigate to="/single" replace />} />
                 </Routes>
             </MetaContext.Provider>
         );
@@ -96,7 +98,7 @@ export function App() {
         <ThemeProvider theme={theme}>
             <ToasterProvider toaster={toaster}>
                 <AsideHeader
-                    logo={{text: 'Sensor Watch', icon: ChartColumn, onClick: () => navigate('/')}}
+                    logo={{text: 'Sensor Watch', icon: ChartColumn, onClick: () => navigate('/single')}}
                     compact={compact}
                     onChangeCompact={setCompact}
                     menuItems={menuItems}

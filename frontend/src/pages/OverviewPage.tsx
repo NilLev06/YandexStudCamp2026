@@ -5,6 +5,7 @@ import {useNavigate} from 'react-router-dom';
 
 import {api} from '../api/client';
 import type {SensorSummary, StreamMessage} from '../api/types';
+import {AlarmNotice} from '../components/AlarmNotice';
 import {StatusLabels} from '../components/StatusLabels';
 import {DonutChart, GroupedBarChart} from '../components/charts';
 import {Page, Panel, Stat} from '../components/Page';
@@ -59,14 +60,15 @@ export function OverviewPage() {
         {id: 'age', name: 'Возраст данных', align: 'end' as const, template: (s: SensorSummary) => formatDuration(s.status?.age)},
         {
             id: 'incidents',
-            name: 'Открытые инциденты',
+            name: 'Тревоги и комментарии',
             template: (s: SensorSummary) =>
                 s.open_incidents.length ? (
                     <Flex gap={1} wrap>
                         {s.open_incidents.map((i) => (
-                            <Label key={i.id} theme={INCIDENT[i.type].theme}>
-                                {INCIDENT[i.type].text}
-                            </Label>
+                            <Flex key={i.id} direction="column" gap={1}>
+                                <Label theme="danger">Тревога</Label>
+                                <Text>{i.reason}</Text>
+                            </Flex>
                         ))}
                     </Flex>
                 ) : (
@@ -96,10 +98,15 @@ export function OverviewPage() {
             {error && <Alert theme="danger" title="Gateway недоступен" message={error.message} />}
             <div className="grid grid_stats">
                 <Stat label="Сенсоров" value={sensors?.length ?? '—'} hint={`симуляций идёт: ${stats.running}`} />
-                <Stat label="Деградация качества" value={stats.quality.alarm} tone={stats.quality.alarm ? 'danger' : undefined} hint={`подозрение: ${stats.quality.suspect}`} />
+                <Stat label="Сенсоров с тревогой" value={(sensors ?? []).filter((s) => s.open_incidents.length > 0).length} tone={stats.open.length ? 'danger' : undefined} hint={`подозрение: ${stats.quality.suspect}`} />
                 <Stat label="Нет свежих данных" value={stats.availability.stale} tone={stats.availability.stale ? 'danger' : undefined} />
-                <Stat label="Открытых инцидентов" value={stats.open.length} tone={stats.open.length ? 'warning' : 'success'} />
+                <Stat label="Открытых тревог" value={stats.open.length} tone={stats.open.length ? 'danger' : 'success'} />
             </div>
+            {stats.open.length > 0 && <Panel title="Открытые тревоги">
+                <Flex direction="column" gap={3}>{(sensors ?? []).flatMap((sensor) => sensor.open_incidents.map((alarm) =>
+                    <AlarmNotice key={`${sensor.sensor_id}:${alarm.id}`} source={sensor.sensor_id}
+                        reason={alarm.reason} start={alarm.start} clock={sensor.clock} />))}</Flex>
+            </Panel>}
             <div className="grid grid_charts">
                 <Panel title="Качество">
                     <DonutChart items={(Object.keys(QUALITY) as (keyof typeof QUALITY)[]).map((k) => ({name: QUALITY[k].text, value: stats.quality[k], color: QUALITY_COLORS[k]}))} />
@@ -109,7 +116,7 @@ export function OverviewPage() {
                         items={(Object.keys(AVAILABILITY) as (keyof typeof AVAILABILITY)[]).map((k) => ({name: AVAILABILITY[k].text, value: stats.availability[k], color: AVAILABILITY_COLORS[k]}))}
                     />
                 </Panel>
-                <Panel title="Открытые инциденты по типам">
+                <Panel title="Причины открытых тревог">
                     <GroupedBarChart
                         height={220}
                         categories={Object.values(INCIDENT).map((i) => i.short)}

@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from app.engine.live import replay_live
+
 from app.engine import CONFIG, RECOMMENDED_SEEDS, SCENARIOS, SEED, Monitor, check_seed, evaluate, generate, replay, rng
 
 ENGINE_JS = Path(__file__).resolve().parents[2] / 'demo' / 'engine.js'
@@ -164,7 +166,7 @@ def test_live_simulation_matches_replay(client, registry, clock, scenario, rec):
         clock.advance(1)
         registry.tick()
     got = [(i['type'], i['start'], i['end']) for i in client.get(f"/api/v1/sensors/{sim['sensor_id']}/incidents").json()]
-    assert got == [(i['type'], i['start'], i['end']) for i in replay(scenario, rec['seed'])['incidents']]
+    assert got == [(i['type'], i['start'], i['end']) for i in replay_live(scenario, rec['seed'])['incidents']]
 
 
 def step_stream(sigmas: float, seed: int, duration: int = 400, start: int = 100) -> list:

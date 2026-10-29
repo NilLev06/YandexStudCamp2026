@@ -47,8 +47,8 @@ export function SeedPicks({scenario, value, onPick}: {scenario: string; value: n
                 </Text>
                 {recs.map((r) => (
                     <ActionTooltip key={r.seed} title={r.label} description={r.note}>
-                        <Button size="s" view={r.seed === value ? 'outlined-info' : 'outlined'} onClick={() => onPick(r.seed)}>
-                            <b>{r.seed}</b> {r.label}
+                        <Button size="s" selected={r.seed === value} aria-pressed={r.seed === value} view={r.seed === value ? 'outlined-info' : 'outlined'} onClick={() => onPick(r.seed)}>
+                            <span style={{fontWeight: r.seed === value ? 700 : 400}}>{r.seed} {r.label}</span>
                         </Button>
                     </ActionTooltip>
                 ))}

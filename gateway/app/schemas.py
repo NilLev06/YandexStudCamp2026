@@ -8,7 +8,7 @@ from .engine.seeds import SEED
 
 SeedValue = Field(default=42, ge=SEED['min'], le=SEED['max'], description=f"Целое число от {SEED['min']} до {SEED['max']}")
 SensorId = Field(pattern=r'^[A-Za-z0-9_.:-]{1,64}$', examples=['camera-01'])
-IncidentType = Literal['quality', 'availability', 'flags']
+IncidentType = Literal['quality', 'availability', 'flags', 'noise', 'stuck', 'saturation', 'rate', 'latency']
 QualityStatus = Literal['normal', 'suspect', 'alarm', 'unknown']
 AvailabilityStatus = Literal['fresh', 'stale', 'unknown']
 
@@ -56,6 +56,8 @@ class FrameOut(BaseModel):
     late_count: int
     accepted: int
     events: int
+    alarm_count: int = 0
+    comment: str = ''
 
 
 class Measurement(BaseModel):
@@ -84,6 +86,7 @@ class IncidentOut(BaseModel):
     start: float
     end: float | None
     reason: str
+    highlight_end: float | None = None
     state: Literal['open', 'closed']
     opened_at: float = Field(description='Время открытия по часам gateway, секунды Unix')
     closed_at: float | None

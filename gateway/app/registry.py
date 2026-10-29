@@ -10,8 +10,9 @@ from itertools import count
 from typing import Any, Literal
 
 from .broker import Broker
-from .engine import PROFILES, SCENARIOS, Incident, Monitor, generate
+from .engine import PROFILES, SCENARIOS, Incident, generate
 from .schemas import TelemetryMessage
+from .engine.live import LiveMonitor, LIVE_ALARMS
 from .settings import Settings
 
 
@@ -55,7 +56,7 @@ class SensorState:
 
     def __post_init__(self) -> None:
         s = self.settings
-        self.monitor = Monitor()
+        self.monitor = LiveMonitor()
         self.frames: deque[dict[str, Any]] = deque(maxlen=s.frame_history)
         self.measurements: deque[dict[str, Any]] = deque(maxlen=s.measurement_history)
         self.events: deque[dict[str, Any]] = deque(maxlen=s.event_history)
@@ -213,7 +214,7 @@ class Registry:
                 'opened_at': opened_at, 'closed_at': closed_at}
 
     def summary(self, sensor: SensorState) -> dict[str, Any]:
-        open_incidents = [i for i in (sensor.monitor.quality_incident, sensor.monitor.availability_incident, sensor.monitor.flags_incident) if i]
+        open_incidents = [i for i in sensor.monitor.incidents if i.end is None]
         return {'sensor_id': sensor.sensor_id, 'source': sensor.source, 'clock': sensor.clock, 'created_at': sensor.created_at,
                 'status': sensor.last_frame, 'open_incidents': [self._incident(sensor, i) for i in open_incidents],
                 'simulation': sensor.simulation.as_dict() if sensor.simulation else None}
@@ -226,7 +227,7 @@ class Registry:
     def overview(self) -> dict[str, Any]:
         quality = dict.fromkeys(('normal', 'suspect', 'alarm', 'unknown'), 0)
         availability = dict.fromkeys(('fresh', 'stale', 'unknown'), 0)
-        incidents = dict.fromkeys(('quality', 'availability', 'flags'), 0)
+        incidents = dict.fromkeys(LIVE_ALARMS, 0)
         flags = 0
         for sensor in self.sensors.values():
             frame = sensor.last_frame
@@ -234,8 +235,8 @@ class Registry:
             availability[frame['availability'] if frame else 'unknown'] += 1
             flags += bool(frame and frame['flags'] == 'degraded')
             m = sensor.monitor
-            for i in (m.quality_incident, m.availability_incident, m.flags_incident):
-                if i:
+            for i in m.incidents:
+                if i.end is None:
                     incidents[i.type] += 1
         return {'sensors': len(self.sensors), 'quality': quality, 'availability': availability,
                 'flags_degraded': flags, 'open_incidents': incidents}

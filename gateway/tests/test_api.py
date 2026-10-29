@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from app.api import stream as stream_api
-from app.engine import replay
+from app.engine.live import replay_live
 
 
 def msg(clock, sensor='camera-01', dt=0.0, **extra):
@@ -11,9 +11,9 @@ def msg(clock, sensor='camera-01', dt=0.0, **extra):
 
 
 def feed(client, registry, clock, seconds, sensor='camera-01', **extra):
-    for _ in range(seconds):
+    for index in range(seconds):
         clock.advance(1)
-        r = client.post('/api/v1/telemetry', json={'messages': [msg(clock, sensor, id=clock.now, **extra)]})
+        r = client.post('/api/v1/telemetry', json={'messages': [msg(clock, sensor, id=clock.now, **{**extra, 'value': extra.get('value', 95.0) + (index % 3 - 1) * 0.25})]})
         assert r.status_code == 202, r.text
         registry.tick()
 
@@ -63,10 +63,10 @@ def test_silence_opens_and_fresh_data_closes_availability_incident(client, regis
     open_ = client.get('/api/v1/incidents', params={'state': 'open'}).json()
     assert [(i['type'], i['sensor_id']) for i in open_] == [('availability', 'camera-01')]
     assert client.get('/api/v1/overview').json()['open_incidents']['availability'] == 1
-    feed(client, registry, clock, 5)
+    feed(client, registry, clock, 7)
     incident = client.get('/api/v1/sensors/camera-01/incidents').json()[0]
     assert incident['state'] == 'closed' and incident['closed_at'] > incident['opened_at']
-    kinds = [e['kind'] for e in client.get('/api/v1/sensors/camera-01/events').json()]
+    kinds = [e['kind'] for e in client.get('/api/v1/sensors/camera-01/events').json() if e['type'] == 'availability']
     assert kinds == ['open', 'close']
 
 
@@ -97,7 +97,7 @@ def test_simulation_reproduces_offline_replay(client, registry, clock):
         registry.tick()
     sim = client.get(f"/api/v1/simulations/{sim['id']}").json()
     assert sim['state'] == 'finished' and sim['progress'] == 1
-    expected = [(i['type'], i['start'], i['end']) for i in replay('combined', 42)['incidents']]
+    expected = [(i['type'], i['start'], i['end']) for i in replay_live('combined', 42)['incidents']]
     got = [(i['type'], i['start'], i['end']) for i in client.get('/api/v1/sensors/sim-combined-42/incidents').json()]
     assert got == expected
     detail = client.get('/api/v1/sensors/sim-combined-42').json()

@@ -1,21 +1,24 @@
-import {type AxisPlotBand, Chart, type ChartData} from '@gravity-ui/charts';
+import {type AxisPlotBand, type ChartData} from '@gravity-ui/charts';
 import {Text} from '@gravity-ui/uikit';
 import {useMemo} from 'react';
 
+import {LinkedChart} from './LinkedChart';
+
 import type {Clock, Frame, Interval, Measurement, Profiles} from '../api/types';
-import {INCIDENT, chartDateFormat, formatNumber, formatTime, toChartX} from '../lib/format';
+import {INCIDENT, chartDateFormat, chartTimeHeader, formatNumber, toChartX} from '../lib/format';
 
 export interface ChartIncident {
     type: string;
     start: number;
     end: number | null;
+    highlight_end?: number | null;
 }
 
-function ChartBox({data, height, empty = 'Данных пока нет'}: {data: ChartData; height: number; empty?: string}) {
+function ChartBox({data, height, clock = 'virtual', empty = 'Данных пока нет'}: {data: ChartData; height: number; clock?: Clock; empty?: string}) {
     const series = data.series.data.filter((s) => s.data.length > 0);
     return (
         <div style={{height}} className={series.length ? undefined : 'chart-empty'}>
-            {series.length ? <Chart data={{...data, series: {...data.series, data: series}}} /> : <Text color="secondary">{empty}</Text>}
+            {series.length ? <LinkedChart data={{...data, series: {...data.series, data: series}}} clock={clock} /> : <Text color="secondary">{empty}</Text>}
         </div>
     );
 }
@@ -23,15 +26,10 @@ function ChartBox({data, height, empty = 'Данных пока нет'}: {data:
 const LATE_AFTER = 5;
 const GAP_AFTER = 2;
 
-function header(clock: Clock) {
-    const back = (x: number) => (clock === 'virtual' ? (x - toChartX(0, 'virtual')) / 1000 : x / 1000);
-    return {type: 'custom' as const, formatter: ({value}: {value: unknown}) => formatTime(back(Number(value)), clock)};
-}
-
 function incidentBands(incidents: ChartIncident[], clock: Clock, until: number): AxisPlotBand[] {
     return incidents.map((i) => ({
         from: toChartX(i.start, clock),
-        to: toChartX(i.end ?? until, clock),
+        to: toChartX(i.end === null ? until : i.highlight_end ?? i.end, clock),
         color: INCIDENT[i.type as keyof typeof INCIDENT]?.color ?? '#4da2f1',
         opacity: 0.18,
         layerPlacement: 'before',
@@ -100,13 +98,13 @@ export function MeasurementsChart(props: MeasurementsChartProps) {
                 plotLines: baseline.map((b) => ({value: toChartX(b.start, clock), color: '#f5a524', width: 1, dashStyle: 'ShortDash' as const})),
             },
             yAxis: [{title: {text: 'Значение'}}],
-            tooltip: {headerFormat: header(clock)},
+            tooltip: {headerFormat: chartTimeHeader(clock)},
             legend: {enabled: true},
         };
     }, [measurements, clock, profiles, incidents, truth, baselineSigma, baseline]);
     return (
         <>
-            <ChartBox data={data} height={height} />
+            <ChartBox data={data} height={height} clock={clock} />
             <div className="chart-note">
                 <span className="swatch" style={{background: INCIDENT.quality.color}} /> деградация качества
                 <span className="swatch" style={{background: INCIDENT.availability.color}} /> нет свежих данных
@@ -126,7 +124,7 @@ export function MeasurementsChart(props: MeasurementsChartProps) {
     );
 }
 
-export function CusumChart({frames, clock, h, suspect, height = 180}: {frames: Frame[]; clock: Clock; h: number; suspect: number; height?: number}) {
+export function CusumChart({frames, clock, h, suspect, height = 180}: {frames: Pick<Frame, 'now' | 's'>[]; clock: Clock; h: number; suspect: number; height?: number}) {
     const data = useMemo<ChartData>(
         () => ({
             series: {
@@ -142,14 +140,14 @@ export function CusumChart({frames, clock, h, suspect, height = 180}: {frames: F
                     ],
                 },
             ],
-            tooltip: {headerFormat: header(clock)},
+            tooltip: {headerFormat: chartTimeHeader(clock)},
             legend: {enabled: false},
         }),
         [frames, clock, h, suspect],
     );
     return (
         <>
-            <ChartBox data={data} height={height} />
+            <ChartBox data={data} height={height} clock={clock} />
             <div className="chart-note">
                 <span className="swatch swatch_line swatch_red" /> порог тревоги {h}
                 <span className="swatch swatch_line" /> подозрение {formatNumber(suspect)}

@@ -5,12 +5,14 @@ import {useNavigate, useParams} from 'react-router-dom';
 
 import {api} from '../api/client';
 import type {Frame, Incident, Measurement, MonitorEvent, SensorDetail, StreamMessage} from '../api/types';
+import {AlarmNotice} from '../components/AlarmNotice';
+import {LinkedChartsProvider} from '../components/LinkedChart';
 import {EventLog} from '../components/EventLog';
 import {Page, Panel} from '../components/Page';
 import {StatusLabels} from '../components/StatusLabels';
 import {CusumChart, MeasurementsChart} from '../components/charts';
 import {useStream} from '../hooks/useStream';
-import {INCIDENT, SIMULATION_STATE, formatDuration, formatNumber, formatTime} from '../lib/format';
+import {SIMULATION_STATE, formatDuration, formatNumber, formatTime} from '../lib/format';
 import {useMeta} from '../lib/meta';
 
 const KEEP = 3600;
@@ -96,7 +98,7 @@ export function SensorPage() {
     const clock = detail.clock;
 
     return (
-        <Page
+        <LinkedChartsProvider resetKey={sensorId}><Page
             title={detail.sensor_id}
             subtitle={
                 (detail.source === 'simulation' ? `Симуляция «${meta.scenarios.find((s) => s.id === sim?.scenario)?.name}», seed ${sim?.seed}, ${sim?.speed}×` : 'Телеметрия через gateway') +
@@ -121,6 +123,13 @@ export function SensorPage() {
                 </>
             }
         >
+            {detail.open_incidents.map((alarm) => <AlarmNotice key={alarm.id} reason={alarm.reason} start={alarm.start} clock={clock} />)}
+            <Panel title="Правила тревог">
+                <Text>Окно — {meta.config.window} с. Для открытия достаточно одного плохого окна;
+                    для восстановления нужны два нормальных окна подряд, {meta.config.window * meta.config.recover} с.
+                    Для уровня также требуется CUSUM ≥ {meta.config.h}; потеря свежести определяется таймером {meta.config.max_age} с.
+                    После подтверждения восстановления оба нормальных окна не закрашиваются.</Text>
+            </Panel>
             <div className="grid grid_sensor-head">
                 <Panel title="Текущее состояние">
                     <Flex direction="column" gap={3}>
@@ -173,13 +182,14 @@ export function SensorPage() {
                 <Panel title="Журнал монитора">
                     <EventLog events={events} clock={clock} />
                 </Panel>
-                <Panel title="Инциденты">
+                <Panel title="Тревоги">
                     <Table
                         data={[...incidents].reverse()}
                         width="max"
-                        emptyMessage="Инцидентов не было"
+                        emptyMessage="Тревог не было"
                         columns={[
-                            {id: 'type', name: 'Тип', template: (i: Incident) => <Label theme={INCIDENT[i.type].theme}>{INCIDENT[i.type].text}</Label>},
+                            {id: 'type', name: 'Событие', template: () => <Label theme="danger">Тревога</Label>},
+                            {id: 'reason', name: 'Комментарий', template: (i: Incident) => <Text>{i.reason}</Text>},
                             {id: 'start', name: 'Начало', template: (i: Incident) => formatTime(i.start, clock)},
                             {id: 'end', name: 'Конец', template: (i: Incident) => (i.end === null ? <Label theme="danger">открыт</Label> : formatTime(i.end, clock))},
                             {id: 'duration', name: 'Длительность', align: 'end', template: (i: Incident) => formatDuration((i.end ?? frame?.now ?? i.start) - i.start)},
@@ -187,6 +197,6 @@ export function SensorPage() {
                     />
                 </Panel>
             </div>
-        </Page>
+        </Page></LinkedChartsProvider>
     );
 }

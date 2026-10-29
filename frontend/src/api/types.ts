@@ -1,6 +1,6 @@
 export type QualityStatus = 'normal' | 'suspect' | 'alarm' | 'unknown';
 export type AvailabilityStatus = 'fresh' | 'stale' | 'unknown';
-export type IncidentType = 'quality' | 'availability' | 'flags';
+export type IncidentType = 'quality' | 'availability' | 'flags' | 'noise' | 'stuck' | 'saturation' | 'rate' | 'latency';
 export type Clock = 'wall' | 'virtual';
 
 export interface Frame {
@@ -19,6 +19,8 @@ export interface Frame {
     late_count: number;
     accepted: number;
     events: number;
+    alarm_count?: number;
+    comment?: string;
 }
 
 export interface Measurement {
@@ -47,6 +49,7 @@ export interface Incident {
     start: number;
     end: number | null;
     reason: string;
+    highlight_end?: number | null;
     state: 'open' | 'closed';
     opened_at: number;
     closed_at: number | null;
@@ -176,3 +179,130 @@ export type StreamMessage =
     | StreamUpdate
     | {type: 'sensor_added'; sensor_id: string; summary: SensorSummary}
     | {type: 'sensor_removed'; sensor_id: string};
+
+export type PairScenario = 'normal' | 'drift' | 'spike' | 'gap';
+export interface PairFrame {
+    now: number;
+    a: number | null;
+    b: number | null;
+    age_a: number | null;
+    age_b: number | null;
+    time_skew: number | null;
+    difference: number | null;
+    status: 'normal' | 'suspect' | 'alarm' | 'unavailable' | 'recovering';
+    comment: string;
+    bad_run: number;
+    good_run: number;
+    comparison_alarm_open: boolean;
+}
+export interface PairReplay {
+    scenario: PairScenario;
+    seed: number;
+    duration: number;
+    config: Record<string, number>;
+    messages: {sensor_id: string; event_time: number; received_at: number; value: number; quality_flags: string}[];
+    frames: PairFrame[];
+    incidents: {id: number; type: 'disagreement' | 'availability'; start: number; end: number | null; reason: string; highlight_end?: number}[];
+    events: {time: number; kind: string; type: string; text: string}[];
+    truth: {start: number; end: number; label: string}[];
+}
+
+export type SingleScenario = 'normal' | 'drift' | 'rise' | 'step' | 'noise' | 'periodic' | 'stuck' | 'saturation'
+    | 'spike' | 'jumps' | 'invalid' | 'gap' | 'delay' | 'rate' | 'mode';
+export type SingleAlarmType = 'level' | 'noise' | 'stuck' | 'saturation' | 'rate' | 'invalid' | 'availability' | 'latency';
+export interface SingleIncident {
+    id: number;
+    type: SingleAlarmType;
+    start: number;
+    end: number | null;
+    highlight_end?: number;
+    reason: string;
+}
+export interface SingleFrame {
+    s: number;
+    cusum_down: number;
+    cusum_up: number;
+    now: number;
+    mode: string | null;
+    value: number | null;
+    aggregate: number | null;
+    spread: number | null;
+    coverage: number | null;
+    bad_share: number | null;
+    age: number | null;
+    since_receipt: number | null;
+    rejected: number;
+    status: 'normal' | 'suspect' | 'alarm' | 'unknown';
+    comment: string;
+    alarms: SingleIncident[];
+}
+export interface SingleReplay {
+    scenario: SingleScenario;
+    seed: number;
+    duration: number;
+    config: Record<string, number>;
+    profiles: Profiles;
+    alarm_names: Record<SingleAlarmType, string>;
+    scenarios: Record<SingleScenario, string>;
+    messages: (PairReplay['messages'][number] & {mode: string})[];
+    frames: SingleFrame[];
+    incidents: SingleIncident[];
+    events: {time: number; kind: string; type: SingleAlarmType | 'info'; text: string; incident_id?: number}[];
+    truth: {start: number; end: number; label: string}[];
+}
+
+export interface AnalysisCase {
+    id: string;
+    kind: 'single' | 'pair';
+    scenario: string;
+    name: string;
+    target: string | null;
+    fault_start: number | null;
+    fault_end: number | null;
+    expectation: string;
+}
+export interface RunAssessment {
+    case_id: string;
+    seed: number;
+    expected: boolean;
+    detected: boolean;
+    expected_count: number;
+    detected_count: number;
+    event_results: {target: string; start: number; end: number; detected: boolean; detection_time: number | null; delay: number | null; recovery_time: number | null; recovery_delay: number | null; repeats: number; early_recoveries: number}[];
+    passed: boolean;
+    issues: string[];
+    false_alarms: number;
+    other_alarms: number;
+    repeats: number;
+    early_recoveries: number;
+    unclosed: number;
+    detection_time: number | null;
+    delay: number | null;
+    recovery_time: number | null;
+    recovery_delay: number | null;
+}
+export interface SimulationAnalysis {
+    case: AnalysisCase;
+    data: SingleReplay | PairReplay;
+    assessment: RunAssessment;
+}
+export interface RunSummary {
+    runs: number;
+    passed: number;
+    expected: number;
+    detected: number;
+    missed: number;
+    false_alarm_runs: number;
+    false_alarms: number;
+    repeats: number;
+    early_recovery_runs: number;
+    unclosed: number;
+    mean_delay: number | null;
+}
+export interface SimulationBatch {
+    seed_from: number;
+    seed_to: number;
+    summary: RunSummary;
+    rows: (RunSummary & {case: AnalysisCase})[];
+    details: RunAssessment[];
+}

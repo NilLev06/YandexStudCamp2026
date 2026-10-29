@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from ..engine import CONFIG, PROFILES, RECOMMENDED_SEEDS, SCENARIOS, SEED
 from ..schemas import HealthOut, MetaOut, Overview
 from ..settings import VERSION
+from ..engine.live import LIVE_CONFIG
 from .deps import RegistryDep, SettingsDep
 
 router = APIRouter(tags=['Система'])
@@ -19,7 +20,7 @@ async def health(registry: RegistryDep) -> dict:
 async def meta(settings: SettingsDep) -> dict:
     return {
         'version': VERSION,
-        'config': CONFIG,
+        'config': LIVE_CONFIG,
         'profiles': PROFILES,
         'scenarios': [{'id': k, **v} for k, v in SCENARIOS.items()],
         'seed': SEED,

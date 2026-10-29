@@ -1,141 +1,196 @@
-import {Alert, Button, Flex, NumberInput, Select, Text} from '@gravity-ui/uikit';
-import {useState} from 'react';
+import {Alert, Button, Checkbox, Flex, Label, Loader, NumberInput, Select, Table, Text} from '@gravity-ui/uikit';
+import {useEffect, useRef, useState} from 'react';
 
 import {api} from '../api/client';
-import type {BenchmarkResult, Metrics, ReplayResult} from '../api/types';
-import {EventLog} from '../components/EventLog';
-import {MetricsTable} from '../components/MetricsTable';
-import {Page, Panel} from '../components/Page';
-import {SeedField, SeedPicks, seedError} from '../components/SeedField';
-import {CusumChart, GroupedBarChart, MeasurementsChart} from '../components/charts';
+import type {PairReplay, RunAssessment, SimulationAnalysis, SimulationBatch, SingleReplay} from '../api/types';
+import {LinkedChartsProvider} from '../components/LinkedChart';
+import {Page, Panel, Stat} from '../components/Page';
+import {PairCharts} from '../components/PairCharts';
+import {SingleCharts} from '../components/SingleCharts';
+import {SeedField, seedError} from '../components/SeedField';
+import {CusumChart} from '../components/charts';
+import {useAsync} from '../hooks/useAsync';
+import {formatDuration, formatNumber, formatTime} from '../lib/format';
 import {useMeta} from '../lib/meta';
-
-const BARS: [string, (m: Metrics) => number][] = [
-    ['Обнаружено', (m) => m.detected],
-    ['Пропущено', (m) => m.total - m.detected],
-    ['Ложные', (m) => m.false_alarms],
-    ['Повторы', (m) => m.repeats],
-    ['Не закрыты', (m) => m.unclosed],
-];
+import {saveSimulation} from '../lib/simulationHistory';
+import {useSearchParams} from 'react-router-dom';
 
 export function AnalysisPage() {
     const meta = useMeta();
-    const [scenario, setScenario] = useState('combined');
-    const [seed, setSeed] = useState<number | null>(42);
-    const [replay, setReplay] = useState<ReplayResult | null>(null);
-    const [scenarios, setScenarios] = useState<string[]>(meta.scenarios.map((s) => s.id));
-    const [range, setRange] = useState<[number | null, number | null]>([1, 50]);
-    const [bench, setBench] = useState<BenchmarkResult | null>(null);
-    const [busy, setBusy] = useState<'replay' | 'bench' | null>(null);
+    const [query] = useSearchParams();
+    const catalog = useAsync(api.analysisCases, []);
+    const [caseId, setCaseId] = useState(query.get('case') ?? 'single:combined');
+    const [seed, setSeed] = useState<number | null>(query.has('seed') ? Number(query.get('seed')) : 42);
+    const [result, setResult] = useState<SimulationAnalysis | null>(null);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showTruth, setShowTruth] = useState(true);
+    const [showMedian, setShowMedian] = useState(false);
+    const [selectedCases, setSelectedCases] = useState<string[]>([]);
+    const [range, setRange] = useState<[number | null, number | null]>([1, 10]);
+    const [batch, setBatch] = useState<SimulationBatch | null>(null);
+    const [checking, setChecking] = useState(false);
+    const [batchError, setBatchError] = useState<string | null>(null);
+    const requestId = useRef(0);
+    const top = useRef<HTMLDivElement>(null);
 
-    const run = async <T,>(kind: 'replay' | 'bench', action: () => Promise<T>, save: (v: T) => void) => {
-        setBusy(kind);
+    useEffect(() => {
+        if (catalog.data) setSelectedCases(catalog.data.map((c) => c.id));
+    }, [catalog.data]);
+    useEffect(() => {
+        const id = ++requestId.current;
+        if (seed === null || seedError(seed, meta.seed)) {setLoading(false); return;}
+        setLoading(true);
         setError(null);
+        const timer = window.setTimeout(async () => {
+            try {
+                const next = await api.analyzeSimulation({case_id: caseId, seed});
+                if (id === requestId.current) {setResult(next); saveSimulation(next.case.id, next.case.name, next.data);}
+            } catch (e) {
+                if (id === requestId.current) setError((e as Error).message);
+            } finally {
+                if (id === requestId.current) setLoading(false);
+            }
+        }, 200);
+        return () => {clearTimeout(timer); requestId.current++;};
+    }, [caseId, seed, meta.seed]);
+
+    const ready = result?.case.id === caseId && result.assessment.seed === seed ? result : null;
+    const options = (catalog.data ?? []).map((c) => ({value: c.id, content: c.name}));
+    const chosen = catalog.data?.find((c) => c.id === caseId);
+    const runCount = selectedCases.length * Math.max(0, (range[1] ?? 0) - (range[0] ?? 0) + 1);
+    const rangeError = seedError(range[0], meta.seed) ?? seedError(range[1], meta.seed) ??
+        ((range[1] ?? 0) < (range[0] ?? 0) ? 'Конец диапазона должен быть не меньше начала' :
+            runCount > meta.limits.max_benchmark_runs ? `Не больше ${meta.limits.max_benchmark_runs} прогонов за раз` : undefined);
+    const check = async () => {
+        setChecking(true); setBatchError(null);
         try {
-            save(await action());
-        } catch (e) {
-            setError((e as Error).message);
-        } finally {
-            setBusy(null);
-        }
+            setBatch(await api.checkSimulations({case_ids: selectedCases, seed_from: range[0]!, seed_to: range[1]!}));
+        } catch (e) {setBatchError((e as Error).message);}
+        finally {setChecking(false);}
     };
+    const openRun = (run: RunAssessment) => {
+        setCaseId(run.case_id); setSeed(run.seed);
+        top.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
+    };
+    const name = (id: string) => catalog.data?.find((c) => c.id === id)?.name ?? id;
+    const single = ready?.case.kind === 'single' ? ready.data as SingleReplay : null;
+    const pair = ready?.case.kind === 'pair' ? ready.data as PairReplay : null;
+    const incidents: {id: number; type: string; start: number; end: number | null; reason: string}[] = ready?.data.incidents ?? [];
+    const problematic = batch?.details.filter((r) => !r.passed) ?? [];
 
-    const runs = scenarios.length * Math.max(0, (range[1] ?? 0) - (range[0] ?? 0) + 1);
-    const seedInvalid = Boolean(seedError(seed, meta.seed));
-    const rangeError =
-        seedError(range[0], meta.seed) ??
-        seedError(range[1], meta.seed) ??
-        ((range[0] as number) > (range[1] as number) ? 'Начало диапазона больше конца' : runs > meta.limits.max_benchmark_runs ? `Не больше ${meta.limits.max_benchmark_runs} прогонов` : undefined);
-
-    return (
-        <Page title="Анализ сценариев" subtitle="Детерминированное воспроизведение и пакетная проверка на gateway">
-            {error && <Alert theme="danger" title="Ошибка запроса" message={error} />}
-            <Panel title="Воспроизведение">
-                <Flex gap={2} alignItems="flex-start" wrap>
-                    <Select label="Сценарий" width={300} value={[scenario]} onUpdate={([v]) => setScenario(v)} options={meta.scenarios.map((s) => ({value: s.id, content: s.name}))} />
-                    <SeedField value={seed} onUpdate={setSeed} />
-                    <Button view="action" loading={busy === 'replay'} disabled={seedInvalid} onClick={() => run('replay', () => api.replay({scenario, seed: seed as number}), setReplay)}>
-                        Воспроизвести
-                    </Button>
-                </Flex>
-                <SeedPicks
-                    scenario={scenario}
-                    value={seed}
-                    onPick={(s) => {
-                        setSeed(s);
-                        run('replay', () => api.replay({scenario, seed: s}), setReplay);
-                    }}
-                />
-                <Text color="secondary">{meta.scenarios.find((s) => s.id === scenario)?.description}</Text>
+    return <Page title="Анализ сценариев" subtitle="Подробный разбор симуляции и проверка устойчивости на разных seed">
+        <div ref={top} />
+        {(catalog.error || error) && <Alert theme="danger" title="Не удалось загрузить прогон" message={error ?? catalog.error?.message} />}
+        <Panel title="Разбор одного прогона">
+            <Flex gap={3} wrap alignItems="flex-end">
+                <Select label="Сценарий" className="analysis-case-select" value={[caseId]} options={options}
+                    onUpdate={([value]) => setCaseId(value)} disabled={!catalog.data} />
+                <SeedField value={seed} onUpdate={setSeed} />
+                {loading && <Loader size="s" />}
+            </Flex>
+            <Flex gap={1} wrap alignItems="center">
+                <Text color="secondary">Примеры:</Text>
+                {[42, 1, 7].map((value) => <Button key={value} size="s" selected={seed === value} aria-pressed={seed === value}
+                    view={seed === value ? 'outlined-info' : 'outlined'} onClick={() => setSeed(value)}>
+                    <span style={{fontWeight: seed === value ? 700 : 400}}>{value}{value === 42 ? ' Эталон' : ''}</span>
+                </Button>)}
+            </Flex>
+            <Text color="secondary">{chosen?.expectation} Выбор сценария или seed сразу загружает результат.</Text>
+            <Text color="secondary">Время — от начала симуляции, мин:с. Окно 3 с; открытие по одному плохому окну,
+                восстановление по двум нормальным. Для уровня дополнительно нужен порог CUSUM 10.</Text>
+        </Panel>
+        {ready && <>
+            <Panel title={`Результат · ${ready.case.name} · seed ${ready.assessment.seed}`}
+                extra={<Label theme={ready.assessment.passed ? 'success' : 'warning'}>{ready.assessment.passed ? 'Соответствует сценарию' : 'Есть замечания'}</Label>}>
+                <div className="grid grid_stats">
+                    <Stat label="Нарушений обнаружено" value={ready.assessment.expected ? `${ready.assessment.detected_count} / ${ready.assessment.expected_count}` : 'Не требуется'} />
+                    <Stat label="Открытие" value={formatTime(ready.assessment.detection_time, 'virtual')}
+                        hint={ready.assessment.delay !== null ? `Через ${formatDuration(ready.assessment.delay)} от начала первого нарушения` : 'Для целевой тревоги'} />
+                    <Stat label="Восстановление" value={formatTime(ready.assessment.recovery_time, 'virtual')}
+                        hint={ready.assessment.recovery_delay !== null ? `Подтверждено через ${formatDuration(ready.assessment.recovery_delay)} после конца нарушения` : 'Для последней целевой тревоги'} />
+                    <Stat label="Лишние тревоги" value={ready.assessment.false_alarms} hint="Открылись вне ожидаемого нарушения" />
+                </div>
+                {ready.assessment.issues.map((issue) => <Text key={issue} color="warning">{issue}</Text>)}
+                {ready.assessment.other_alarms > 0 && <Text color="secondary">Других тревог во время нарушения: {ready.assessment.other_alarms}.
+                    Они перечислены ниже и не подменяют обнаружение целевой причины.</Text>}
             </Panel>
-            {replay && (
-                <>
-                    <Panel title={`Результат · ${meta.scenarios.find((s) => s.id === replay.scenario)?.name} · seed ${replay.seed}`}>
-                        <MetricsTable metrics={replay.metrics} />
-                    </Panel>
-                    <Panel title="Измерения, инциденты монитора и разметка">
-                        <MeasurementsChart
-                            measurements={replay.messages}
-                            clock="virtual"
-                            profiles={meta.profiles}
-                            incidents={replay.incidents}
-                            truth={replay.truth}
-                            baselineSigma={meta.config.baselineSigma}
-                            baseline={replay.baseline.filter((b) => b.type === 'quality')}
-                        />
-                    </Panel>
-                    <div className="grid grid_two">
-                        <Panel title="CUSUM">
-                            <CusumChart frames={replay.frames} clock="virtual" h={meta.config.h} suspect={meta.config.suspect} />
-                        </Panel>
-                        <Panel title="Журнал монитора">
-                            <EventLog events={replay.events} clock="virtual" limit={12} />
-                        </Panel>
-                    </div>
-                </>
-            )}
-            <Panel title="Пакетная проверка">
-                <Flex gap={2} alignItems="flex-end" wrap>
-                    <Select
-                        label="Сценарии"
-                        multiple
-                        width={360}
-                        value={scenarios}
-                        onUpdate={setScenarios}
-                        options={meta.scenarios.map((s) => ({value: s.id, content: s.name}))}
-                    />
-                    <NumberInput label="Seed с" value={range[0]} onUpdate={(v) => setRange([v, range[1]])} min={meta.seed.min} max={meta.seed.max} style={{width: 130}} />
-                    <NumberInput label="по" value={range[1]} onUpdate={(v) => setRange([range[0], v])} min={meta.seed.min} max={meta.seed.max} style={{width: 120}} />
-                    <Button
-                        view="action"
-                        loading={busy === 'bench'}
-                        disabled={!scenarios.length || Boolean(rangeError)}
-                        onClick={() => run('bench', () => api.benchmark({scenarios, seed_from: range[0] ?? 1, seed_to: range[1] ?? 1}), setBench)}
-                    >
-                        Проверить {runs} прогонов
-                    </Button>
-                </Flex>
-                {rangeError && <Text color="danger">{rangeError}</Text>}
-                <Text color="secondary">
-                    Параметры детектора фиксированы; это проверка устойчивости к шуму на синтетике. Порог сравнения не выровнен по бюджету ложных тревог.
-                </Text>
-                {bench && (
-                    <Flex direction="column" gap={3}>
-                        <Text>
-                            {bench.runs} прогонов · seed {bench.seed_from}…{bench.seed_to} · {Math.round(bench.elapsed_ms)} мс
-                        </Text>
-                        <MetricsTable metrics={bench} />
-                        <GroupedBarChart
-                            categories={BARS.map(([name]) => name)}
-                            series={[
-                                {name: 'Монитор (CUSUM)', color: '#4d7cfe', values: BARS.map(([, get]) => get(bench.monitor))},
-                                {name: 'Простой порог', color: '#f5a524', values: BARS.map(([, get]) => get(bench.baseline))},
-                            ]}
-                        />
-                    </Flex>
-                )}
+            {ready.assessment.event_results.length > 1 && <Panel title="Обнаружение каждого нарушения">
+                <Table data={ready.assessment.event_results} width="max" columns={[
+                    {id: 'target', name: 'Ожидается', template: (e) => single?.alarm_names[e.target as keyof SingleReplay['alarm_names']] ?? e.target},
+                    {id: 'start', name: 'Начало нарушения', template: (e) => formatTime(e.start, 'virtual')},
+                    {id: 'detection_time', name: 'Тревога', template: (e) => formatTime(e.detection_time, 'virtual')},
+                    {id: 'recovery_time', name: 'Восстановление', template: (e) => formatTime(e.recovery_time, 'virtual')},
+                ]} />
+            </Panel>}
+            <LinkedChartsProvider resetKey={`${ready.case.id}:${ready.assessment.seed}`}>
+                <Panel title={single ? 'Измерения датчика' : 'Измерения двух датчиков'} extra={<Flex gap={2} wrap>
+                    <Checkbox checked={showTruth} onUpdate={setShowTruth}>Разметка генератора</Checkbox>
+                    {single && <Checkbox checked={showMedian} onUpdate={setShowMedian}>Медиана окна</Checkbox>}
+                </Flex>}>
+                    {single && <SingleCharts replay={single} position={single.duration} showTruth={showTruth} showMedian={showMedian} />}
+                    {pair && <PairCharts replay={pair} position={pair.duration} showTruth={showTruth} />}
+                    <Text variant="caption-2" color="secondary">Красный фон — тревоги, жёлтый — заданное нарушение.
+                        Разметка используется только для оценки. После подтверждения восстановления оба нормальных окна не закрашиваются.</Text>
+                </Panel>
+                <Panel title={single ? 'Накопление отклонений (CUSUM)' : 'Расхождение и пороги'}>
+                    {single && <div className="replay-chart"><CusumChart frames={single.frames} clock="virtual" h={single.config.cusum_h} suspect={single.config.cusum_suspect} height={220} /></div>}
+                    {pair && <PairCharts replay={pair} position={pair.duration} difference />}
+                    <Text variant="caption-2" color="secondary">Наведите на любой график: время и значения появятся на обоих.
+                        {single && ' CUSUM отвечает за уровень; шум, частота и качество данных проверяются независимо.'}</Text>
+                </Panel>
+            </LinkedChartsProvider>
+            <Panel title="Тревоги и причины">
+                <Table data={incidents} width="max" emptyMessage="Тревог в этом прогоне нет" columns={[
+                    {id: 'alarm', name: 'Событие', template: () => <Label theme="danger">Тревога</Label>},
+                    {id: 'reason', name: 'Комментарий'},
+                    {id: 'start', name: 'Открыта', template: (i) => formatTime(i.start, 'virtual')},
+                    {id: 'end', name: 'Восстановление', template: (i) => i.end === null ? <Label theme="danger">Не подтверждено</Label> : formatTime(i.end, 'virtual')},
+                ]} />
             </Panel>
-        </Page>
-    );
+        </>}
+        <Panel title="Проверка на разных seed">
+            <Text>Один удачный пример не показывает устойчивость. Здесь каждый выбранный сценарий повторяется с разным случайным шумом.
+                Результат показывает пропуски, лишние тревоги, повторные открытия и раннее снятие тревоги.</Text>
+            <Flex gap={2} wrap alignItems="flex-end">
+                <Select label="Сценарии" multiple className="analysis-case-select" value={selectedCases} options={options} onUpdate={setSelectedCases} />
+                <NumberInput label="Seed с" value={range[0]} onUpdate={(v) => setRange([v, range[1]])} min={meta.seed.min} max={meta.seed.max} style={{width: 140}} />
+                <NumberInput label="по" value={range[1]} onUpdate={(v) => setRange([range[0], v])} min={meta.seed.min} max={meta.seed.max} style={{width: 130}} />
+                <Button view="action" loading={checking} disabled={!selectedCases.length || Boolean(rangeError)} onClick={check}>Проверить {runCount} прогонов</Button>
+            </Flex>
+            {rangeError && <Text color="danger">{rangeError}</Text>}
+            {batchError && <Alert theme="danger" title="Проверка не выполнена" message={batchError} />}
+            {batch && <>
+                <Text variant="subheader-1">Результат: {batch.summary.runs} прогонов · seed {batch.seed_from}…{batch.seed_to}</Text>
+                <div className="grid grid_stats">
+                    <Stat label="Нарушений обнаружено" value={`${batch.summary.detected} / ${batch.summary.expected}`} hint={`Пропущено: ${batch.summary.missed}`} />
+                    <Stat label="Прогонов с лишними тревогами" value={`${batch.summary.false_alarm_runs} / ${batch.summary.runs}`} hint={`Всего лишних тревог: ${batch.summary.false_alarms}`} />
+                    <Stat label="Прогонов без замечаний" value={`${batch.summary.passed} / ${batch.summary.runs}`} hint="Нет пропусков, лишних тревог, повторов, ранних снятий и незакрытых тревог" />
+                    <Stat label="Средняя задержка обнаружения" value={batch.summary.mean_delay === null ? '—' : `${formatNumber(batch.summary.mean_delay)} с`} hint="Только обнаруженные целевые нарушения" />
+                </div>
+                <Table data={batch.rows} width="max" columns={[
+                    {id: 'case', name: 'Сценарий', template: (r) => r.case.name},
+                    {id: 'detected', name: 'Обнаружено', template: (r) => r.expected ? `${r.detected} / ${r.expected}` : 'Тревог не ожидается'},
+                    {id: 'false_alarm_runs', name: 'Прогонов с лишними тревогами'},
+                    {id: 'repeats', name: 'Повторных открытий'},
+                    {id: 'early_recovery_runs', name: 'Раннее снятие, прогонов'},
+                    {id: 'unclosed', name: 'Не закрыто тревог'},
+                    {id: 'action', name: '', template: (r) => <Button size="s" onClick={() => openRun(batch.details.find((d) => d.case_id === r.case.id && !d.passed) ?? batch.details.find((d) => d.case_id === r.case.id)!)}>Разобрать</Button>},
+                ]} />
+                <Text color="secondary">Лишняя тревога — открытие вне заданного нарушения (допуск 3 с на завершение окна).
+                    Другие симптомы внутри нарушения считаются отдельно. Раннее снятие — закрытие целевой тревоги до конца заданного нарушения.
+                    Прогоны без нарушения не входят в число ожидаемых обнаружений.</Text>
+                {problematic.length > 0 ? <>
+                    <Text variant="subheader-1">Прогоны с замечаниями · {problematic.length}</Text>
+                    <Table data={problematic.slice(0, 20)} width="max" columns={[
+                        {id: 'case_id', name: 'Сценарий', template: (r) => name(r.case_id)},
+                        {id: 'seed', name: 'Seed'},
+                        {id: 'issues', name: 'Что произошло', template: (r) => r.issues.join('. ')},
+                        {id: 'action', name: '', template: (r) => <Button size="s" onClick={() => openRun(r)}>Показать прогон</Button>},
+                    ]} />
+                    {problematic.length > 20 && <Text color="secondary">Показаны первые 20. Для подробного разбора сузьте диапазон seed.</Text>}
+                </> : <Text color="positive">В выбранных прогонах замечаний нет.</Text>}
+            </>}
+        </Panel>
+    </Page>;
 }

@@ -23,6 +23,7 @@ body {
 }
 
 .panel__head {
+    flex-wrap: wrap;
     min-height: 28px;
 }
 
@@ -134,4 +135,82 @@ body {
 
 .progress-wide {
     width: 100%;
+}
+:root .pair-time-label {display: flex; align-items: center; gap: 12px; flex: 1; min-width: 180px;}
+:root .pair-time {flex: 1; min-width: 80px; accent-color: var(--g-color-base-brand);}
+
+.replay-chart {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.linked-chart {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+}
+
+.linked-chart-readout {
+    position: absolute;
+    z-index: 2;
+    width: max-content;
+    max-width: min(340px, calc(100% - 24px));
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--g-color-line-generic);
+    border-radius: 8px;
+    background: var(--g-color-base-float);
+    color: var(--g-color-text-primary);
+    box-shadow: 0 3px 12px #0002;
+    pointer-events: none;
+    font-size: 12px;
+}
+
+.linked-chart-readout__time {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.linked-chart-readout__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.linked-chart-readout__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.linked-chart-readout__row > strong {
+    white-space: nowrap;
+}
+
+.linked-chart-readout__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.linked-chart-anchor {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--g-color-base-float);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.analysis-case-select {
+    width: min(440px, 100%);
+    max-width: 100%;
 }

@@ -1,0 +1,45 @@
+const assert = require('node:assert/strict');
+const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.PAIR_BROWSER_PATH ? {executablePath:process.env.PAIR_BROWSER_PATH} : {})});
+ try {
+ const page=await browser.newPage({viewport:{width:1440,height:1080}});const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ const base=process.env.CHART_DEMO_URL || 'http://127.0.0.1:8010';
+ await page.goto(base+'/'); await page.waitForURL('**/single');
+ assert.equal(await page.getByText('Обзор',{exact:true}).count(),0);
+ await page.goto(base+'/analysis');
+ await page.getByText('Результат · Один датчик · Полная демонстрация · seed 42',{exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Воспроизвести',exact:true}).count(),0);
+ assert.equal(await page.locator('.linked-chart').count(),2);
+ await page.goto(base+'/analysis?case=single%3Anoise&seed=42');
+ await page.getByText('Результат · Один датчик · Рост случайного шума · seed 42',{exact:true}).waitFor();
+ const chart=page.locator('.linked-chart').first(); await chart.scrollIntoViewIfNeeded();
+ const tick=chart.locator('.gcharts-x-axis__label').filter({hasText:/^01:00$/}).first();await tick.waitFor();
+ await page.waitForTimeout(300); const t=await tick.boundingBox(),b=await chart.boundingBox();
+ await page.mouse.move(t.x+t.width/2,b.y+b.height*.45);
+ await page.locator('.linked-chart-readout').nth(1).waitFor({state:'visible'});
+ assert.deepEqual(await page.locator('.linked-chart-readout__time').allTextContents(),['01:00','01:00']);
+ const batchResponse=page.waitForResponse(r=>r.url().endsWith('/simulation-analysis/benchmark')&&r.status()===200);
+ await page.getByRole('button',{name:'Проверить 200 прогонов',exact:true}).click();
+ const batch=await (await batchResponse).json(); assert.equal(batch.summary.runs,200);assert.equal(batch.summary.detected,160);
+ await page.getByText('Результат: 200 прогонов · seed 1…10',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Показать прогон',exact:true}).first().click();
+ const issue=batch.details.find(r=>!r.passed);
+ await page.waitForResponse(r=>r.url().endsWith('/simulation-analysis/replay')&&r.request().postDataJSON().seed===issue.seed&&r.status()===200);
+ await page.getByText(new RegExp('Результат · .* · seed '+issue.seed+'$')).waitFor();
+ await page.goto(base+'/analysis?case=pair%3Adrift&seed=42');
+ await page.getByText('Результат · Два датчика · Плавное расхождение и восстановление · seed 42',{exact:true}).waitFor();
+ assert.equal(await page.locator('.linked-chart').count(),2);
+ await page.goto(base+'/incidents'); await page.getByText('Тревоги симуляций',{exact:true}).waitFor();
+ assert.ok(await page.getByRole('button',{name:'Разобрать',exact:true}).count()>0);
+ await page.getByRole('button',{name:'Разобрать',exact:true}).first().click();
+ await page.getByText('Результат · Два датчика · Плавное расхождение и восстановление · seed 42',{exact:true}).waitFor();
+ await page.setViewportSize({width:390,height:844});
+ await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth);
+ await page.waitForTimeout(700);
+ if (process.env.ANALYSIS_SCREENSHOT) await page.screenshot({path:process.env.ANALYSIS_SCREENSHOT,fullPage:true});
+ assert.deepEqual(errors,[]);
+ console.log('Simulation UI verified: root redirect, no overview, auto replay, paired cursors/time, 200-run report, drilldown, pair analysis, local alarm history and mobile width.');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

@@ -4,7 +4,7 @@ import {useState} from 'react';
 import {api} from '../api/client';
 import type {Scenario, Simulation} from '../api/types';
 import {useMeta} from '../lib/meta';
-import {SeedField, SeedPicks, seedError} from './SeedField';
+import {SeedField, seedError} from './SeedField';
 
 interface Props {
     open: boolean;
@@ -55,7 +55,7 @@ export function SimulationDialog({open, scenarios, maxSpeed, onClose, onStarted}
                         <SeedField value={seed} onUpdate={setSeed} />
                         <NumberInput label="Скорость, ×" value={speed} onUpdate={setSpeed} min={0.5} max={maxSpeed} step={0.5} allowDecimal />
                     </Flex>
-                    <SeedPicks scenario={scenario} value={seed} onPick={setSeed} />
+                    <Text color="secondary">Окно 3 с. Открытие — одно плохое окно, восстановление — два нормальных подряд. Для уровня также нужен порог CUSUM.</Text>
                     <TextInput label="ID сенсора" placeholder="по умолчанию sim-сценарий-seed" value={sensorId} onUpdate={setSensorId} />
                 </Flex>
             </Dialog.Body>

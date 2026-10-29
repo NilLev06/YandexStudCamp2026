@@ -1,0 +1,89 @@
+{
+  "source": "https://github.com/NetManAIOps/OmniAnomaly",
+  "revision": "7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4",
+  "machine": "machine-1-1",
+  "features": 38,
+  "train_points": 28479,
+  "test_points": 28479,
+  "anomaly_points": 2694,
+  "anomaly_fraction": 0.09459601811861372,
+  "anomaly_intervals": [
+    {
+      "start_index": 15849,
+      "end_index_inclusive": 16394,
+      "points": 546
+    },
+    {
+      "start_index": 16963,
+      "end_index_inclusive": 17516,
+      "points": 554
+    },
+    {
+      "start_index": 18071,
+      "end_index_inclusive": 18527,
+      "points": 457
+    },
+    {
+      "start_index": 19367,
+      "end_index_inclusive": 20087,
+      "points": 721
+    },
+    {
+      "start_index": 20786,
+      "end_index_inclusive": 21194,
+      "points": 409
+    },
+    {
+      "start_index": 24679,
+      "end_index_inclusive": 24681,
+      "points": 3
+    },
+    {
+      "start_index": 26114,
+      "end_index_inclusive": 26115,
+      "points": 2
+    },
+    {
+      "start_index": 27554,
+      "end_index_inclusive": 27555,
+      "points": 2
+    }
+  ],
+  "files": {
+    "train": {
+      "path": "data/smd/raw/train/machine-1-1.txt",
+      "url": "https://raw.githubusercontent.com/NetManAIOps/OmniAnomaly/7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4/ServerMachineDataset/train/machine-1-1.txt",
+      "bytes": 9739818,
+      "sha256": "ecebd2933ccdc1126e2abbfb538762dbde16410cebc77257a7b96e1e1fbcf753"
+    },
+    "test": {
+      "path": "data/smd/raw/test/machine-1-1.txt",
+      "url": "https://raw.githubusercontent.com/NetManAIOps/OmniAnomaly/7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4/ServerMachineDataset/test/machine-1-1.txt",
+      "bytes": 9739818,
+      "sha256": "bdb801d8d52ce6b0c4a20c310edf31b5cee9bc82eb84fb38e7d4a19309b16ddb"
+    },
+    "test_label": {
+      "path": "data/smd/raw/test_label/machine-1-1.txt",
+      "url": "https://raw.githubusercontent.com/NetManAIOps/OmniAnomaly/7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4/ServerMachineDataset/test_label/machine-1-1.txt",
+      "bytes": 56958,
+      "sha256": "cddf33441ae480c6074e173c897d4715eb893f24a7078d3d3e1b79b200c7cd19"
+    },
+    "interpretation_label": {
+      "path": "data/smd/raw/interpretation_label/machine-1-1.txt",
+      "url": "https://raw.githubusercontent.com/NetManAIOps/OmniAnomaly/7fb0e0acf89ea49908896bcc9f9e80fcfff6baf4/ServerMachineDataset/interpretation_label/machine-1-1.txt",
+      "bytes": 311,
+      "sha256": "ea2b75dacb9cd140d81962203b18706e8e85d70c87dcced69746a37ba133fa48"
+    }
+  },
+  "ranges": {
+    "train": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "test": {
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "time_axis": "Original timestamps are absent in the numeric matrices; use sample indices until sampling interval is independently confirmed."
+}

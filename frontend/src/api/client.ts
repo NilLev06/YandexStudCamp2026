@@ -1,4 +1,7 @@
 import type {
+    AnalysisCase,
+    SimulationAnalysis,
+    SimulationBatch,
     BenchmarkResult,
     Frame,
     Incident,
@@ -6,6 +9,10 @@ import type {
     Measurement,
     Meta,
     MonitorEvent,
+    SingleReplay,
+    SingleScenario,
+    PairReplay,
+    PairScenario,
     ReplayResult,
     SensorDetail,
     SensorSummary,
@@ -52,6 +59,11 @@ const post = <T>(path: string, body: unknown) => request<T>(path, {method: 'POST
 const id = encodeURIComponent;
 
 export const api = {
+    analysisCases: () => request<AnalysisCase[]>('/simulation-analysis/cases'),
+    analyzeSimulation: (body: {case_id: string; seed: number}) => post<SimulationAnalysis>('/simulation-analysis/replay', body),
+    checkSimulations: (body: {case_ids: string[]; seed_from: number; seed_to: number}) => post<SimulationBatch>('/simulation-analysis/benchmark', body),
+    singleReplay: (body: {scenario: SingleScenario; seed: number}) => post<SingleReplay>('/single-replays', body),
+    pairReplay: (body: {scenario: PairScenario; seed: number}) => post<PairReplay>('/pair-replays', body),
     meta: () => request<Meta>('/meta'),
     sensors: () => request<SensorSummary[]>('/sensors'),
     sensor: (sensorId: string) => request<SensorDetail>(`/sensors/${id(sensorId)}`),
