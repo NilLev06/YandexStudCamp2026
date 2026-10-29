@@ -1,0 +1,177 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "text",
+      "x": 40,
+      "y": 40,
+      "width": 240,
+      "height": 150,
+      "text": "**Generator**\ngenerate(scenario, seed)\nmulberry32 + Box–Muller\nСообщения и отдельная разметка",
+      "color": "4"
+    },
+    {
+      "id": "n2",
+      "type": "text",
+      "x": 360,
+      "y": 40,
+      "width": 240,
+      "height": 150,
+      "text": "**Monitor (JS / Python)**\ntick(now, incoming)\nМедиана остатков + CUSUM\nКачество / свежесть / флаги\nДедупликация: корзины за 120 с",
+      "color": "6"
+    },
+    {
+      "id": "n3",
+      "type": "text",
+      "x": 680,
+      "y": 40,
+      "width": 240,
+      "height": 150,
+      "text": "**Evaluator**\nevaluate(result)\nОбнаружение, ложные, повторы\nНезакрытые и задержки\nРазметка не входит в Monitor",
+      "color": "5"
+    },
+    {
+      "id": "n4",
+      "type": "text",
+      "x": 360,
+      "y": 200,
+      "width": 240,
+      "height": 150,
+      "text": "**Журнал и инциденты**\nПричины открытия / закрытия\nРежим и неизвестный режим\nДвижок: maxLog = 10000",
+      "color": "2"
+    },
+    {
+      "id": "n5",
+      "type": "text",
+      "x": 40,
+      "y": 200,
+      "width": 240,
+      "height": 150,
+      "text": "**Сценарии**\ncombined: 390 с\nspike: 120, drift: 220\ngap: 160, mode: 150\nSeed: 1…999999",
+      "color": "1"
+    },
+    {
+      "id": "n6",
+      "type": "text",
+      "x": 680,
+      "y": 200,
+      "width": 240,
+      "height": 150,
+      "text": "**Replay / Benchmark**\nПолный офлайн-проход\nДемка: 5 × 50 seed\nGateway: до 1000 прогонов\nПорог использует тот же таймер свежести",
+      "color": "3"
+    },
+    {
+      "id": "n7",
+      "type": "text",
+      "x": 360,
+      "y": 420,
+      "width": 240,
+      "height": 150,
+      "text": "**FastAPI Gateway**\nРеестр: Monitor на sensor_id\nREST /api/v1 и SSE\nИстории в памяти одного процесса",
+      "color": "6"
+    },
+    {
+      "id": "n8",
+      "type": "text",
+      "x": 680,
+      "y": 420,
+      "width": 240,
+      "height": 150,
+      "text": "**React + Gravity UI**\nОбзор и карточки сенсоров\nИнциденты и анализ\nREST-снимки + SSE-обновления",
+      "color": "4"
+    },
+    {
+      "id": "n9",
+      "type": "text",
+      "x": 40,
+      "y": 420,
+      "width": 240,
+      "height": 150,
+      "text": "**Автономная демка**\ndemo/index.html\nJS replay + SVG\nПеремотка, метрики, экспорт JSON",
+      "color": "4"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "fromNode": "n1",
+      "fromSide": "right",
+      "toNode": "n2",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "messages без truth"
+    },
+    {
+      "id": "e3",
+      "fromNode": "n2",
+      "fromSide": "bottom",
+      "toNode": "n4",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "open / close / mode"
+    },
+    {
+      "id": "e4",
+      "fromNode": "n5",
+      "fromSide": "right",
+      "toNode": "n1",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "SCENARIOS"
+    },
+    {
+      "id": "e6",
+      "fromNode": "n1",
+      "fromSide": "right",
+      "toNode": "n6",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "messages + truth"
+    },
+    {
+      "id": "e7",
+      "fromNode": "n6",
+      "fromSide": "top",
+      "toNode": "n3",
+      "toSide": "bottom",
+      "toEnd": "arrow",
+      "label": "результат + truth"
+    },
+    {
+      "id": "e8",
+      "fromNode": "n7",
+      "fromSide": "top",
+      "toNode": "n2",
+      "toSide": "bottom",
+      "toEnd": "arrow",
+      "label": "такты и телеметрия"
+    },
+    {
+      "id": "e9",
+      "fromNode": "n7",
+      "fromSide": "right",
+      "toNode": "n8",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "REST / SSE"
+    },
+    {
+      "id": "e10",
+      "fromNode": "n6",
+      "fromSide": "left",
+      "toNode": "n9",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "результат replay"
+    },
+    {
+      "id": "e11",
+      "fromNode": "n8",
+      "fromSide": "top",
+      "toNode": "n6",
+      "toSide": "bottom",
+      "toEnd": "arrow",
+      "label": "POST replays / benchmark"
+    }
+  ]
+}
